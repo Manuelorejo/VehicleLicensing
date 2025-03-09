@@ -12,10 +12,18 @@ class User(AbstractUser):
     groups = models.ManyToManyField(Group, related_name="custom_user_set", blank=True)
     user_permissions = models.ManyToManyField(Permission, related_name="custom_user_permissions_set", blank=True)
 
+from django.db import models
+
 class State(models.Model):
-    name = models.CharField(max_length=50, unique=True, db_index=True)
+    name = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
     def __str__(self):
         return self.name
+
+    class Meta:
+        ordering = ['name']
 
 class Vehicle(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='vehicles')
@@ -40,22 +48,52 @@ class Vehicle(models.Model):
         indexes = [models.Index(fields=['owner', 'plate_number'])]
 
 class TrafficLaw(models.Model):
-    law_name = models.CharField(max_length=100, unique=True, db_index=True)
-    description = models.TextField()
+    law_name = models.CharField(max_length=255, unique=True)
     fine_amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0'))])
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
     def __str__(self):
         return self.law_name
 
+    class Meta:
+        ordering = ['law_name']
+
 class Offense(models.Model):
-    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='offenses')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='offenses')
-    law = models.ForeignKey(TrafficLaw, on_delete=models.CASCADE)
+    # Define status choices as a class attribute for reusability
+    STATUS_CHOICES = [
+        ("unpaid", "Unpaid"),
+        ("paid", "Paid"),
+    ]
+
+    vehicle = models.ForeignKey('Vehicle', on_delete=models.CASCADE, related_name='offenses')
+    user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='offenses')
+    law = models.ForeignKey('TrafficLaw', on_delete=models.CASCADE, related_name='offenses')
     offense_date = models.DateTimeField(db_index=True)
-    state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True)
-    fine_amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0'))])
-    status = models.CharField(max_length=20, choices=[("unpaid", "Unpaid"), ("paid", "Paid")], default="unpaid")
+    state = models.ForeignKey('State', on_delete=models.SET_NULL, null=True, blank=True, db_index=True)
+    fine_amount = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        validators=[MinValueValidator(Decimal('0'))]
+    )
+    status = models.CharField(
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default="unpaid", 
+        db_index=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
     def __str__(self):
-        return f"{self.vehicle.plate_number} - {self.law.law_name}"
+        return f"{self.vehicle.plate_number} - {self.law.law_name} ({self.offense_date.date()} in {self.state})"
+
+    class Meta:
+        ordering = ['-offense_date']  # Order by most recent offense first
+        indexes = [
+            models.Index(fields=['status']),  # Already added via db_index=True
+            models.Index(fields=['state']),
+        ]
 
 class Fine(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fines')
@@ -76,11 +114,20 @@ class Registration(models.Model):
         return f"Registration for {self.vehicle.plate_number}"
 
 class Payment(models.Model):
+    PAYMENT_TYPES = (
+        ('fine', 'Fine Payment'),
+        ('renewal', 'Renewal Payment'),
+    )
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
     fine = models.ForeignKey(Fine, on_delete=models.CASCADE, related_name="payments")
     amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0'))])
     payment_date = models.DateTimeField(auto_now_add=True, db_index=True)
     transaction_id = models.CharField(max_length=50, unique=True, db_index=True)
+    registration = models.ForeignKey('Registration', on_delete=models.SET_NULL, null=True, blank=True)
+    payment_type = models.CharField(max_length=20, choices=PAYMENT_TYPES, default='fine')
+
+    def __str__(self):
+        return f"Payment {self.transaction_id} - {self.amount}"
 
 class AuditLog(models.Model):
     table_name = models.CharField(max_length=50)
@@ -90,3 +137,27 @@ class AuditLog(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
     def __str__(self):
         return f"{self.table_name} {self.action} at {self.timestamp}"
+
+class CarMake(models.Model):
+    name = models.CharField(max_length=50, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['name']
+
+class CarModel(models.Model):
+    make = models.ForeignKey(CarMake, on_delete=models.CASCADE, related_name='models')
+    name = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.make.name} {self.name}"
+
+    class Meta:
+        ordering = ['name']
+        unique_together = ['make', 'name']    

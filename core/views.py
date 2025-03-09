@@ -1,16 +1,20 @@
 # core/views.py
 from django.shortcuts import render  # Added for index view
-from rest_framework import viewsets, status
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.decorators import action
+from .models import Fine
+from rest_framework import viewsets, status, generics
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response
+from rest_framework import viewsets
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import Vehicle, TrafficLaw, Offense, Payment, Registration, State, Fine
+from .models import Vehicle, TrafficLaw, Offense, Payment, Registration, State, Fine, CarMake, CarModel
 from .serializers import (
     VehicleSerializer, TrafficLawSerializer, OffenseSerializer,
     PaymentSerializer, RegistrationSerializer, StateSerializer,
-    UserSerializer, FineSerializer
+    UserSerializer, FineSerializer, CarMakeSerializer, CarModelSerializer
 )
 
 User = get_user_model()
@@ -23,6 +27,11 @@ class StandardPagination(PageNumberPagination):
 def index(request):
     """Serve the HTMX frontend."""
     return render(request, 'index.html')
+
+class UserRegistrationView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [AllowAny]
 
 class VehicleViewSet(viewsets.ModelViewSet):
     serializer_class = VehicleSerializer
@@ -73,6 +82,8 @@ class PaymentViewSet(viewsets.ModelViewSet):
     pagination_class = StandardPagination
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['fine']
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
 
     def get_queryset(self):
         return Payment.objects.filter(user=self.request.user).select_related('user', 'fine').order_by('payment_date')
@@ -100,6 +111,43 @@ class RegistrationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Registration.objects.filter(user=self.request.user).select_related('vehicle', 'user', 'state').order_by('registration_date')
 
+    @action(detail=True, methods=['GET'], url_path='check-eligibility')
+    def check_eligibility(self, request, pk=None):
+        registration = self.get_object()
+        vehicle = registration.vehicle
+        
+        # Check for outstanding fines
+        unpaid_fines = Fine.objects.filter(vehicle=vehicle, status='unpaid')
+        if unpaid_fines.exists():
+            return Response({
+                'eligible': False,
+                'reason': 'You have unpaid fines. Please settle them before renewing.'
+            }, status=400)
+        return Response({'eligible': True})
+    
+    def partial_update(self, request, *args, **kwargs):
+        # Handle PATCH requests for updating expiry_date
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+
+        eligibility_response = self.check_eligibility(request, pk=instance.id)
+        if not eligibility_response.data['eligible']:
+            return Response(eligibility_response.data, status=400)
+        
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        
+        # Optional: Add validation (e.g., new expiry date must be in the future)
+        if 'expiry_date' in request.data:
+            from datetime import datetime
+            new_expiry = datetime.strptime(request.data['expiry_date'], '%Y-%m-%d').date()
+            if new_expiry <= datetime.today().date():
+                return Response({'error': 'New expiry date must be in the future'}, status=400)
+        
+        serializer.save()
+        return Response(serializer.data)
+    
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, context={'request': request})
         if serializer.is_valid():
@@ -122,3 +170,19 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.request.user.is_staff:
             return User.objects.order_by('username')  # Admins see all users
         return User.objects.filter(id=self.request.user.id).order_by('username')
+    
+class CarMakeViewSet(viewsets.ModelViewSet):
+    queryset = CarMake.objects.all()
+    serializer_class = CarMakeSerializer
+    permission_classes = [IsAuthenticated]
+
+class CarModelViewSet(viewsets.ModelViewSet):
+    serializer_class = CarModelSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = CarModel.objects.all()
+        make_id = self.request.query_params.get('make_id', None)
+        if make_id is not None:
+            queryset = queryset.filter(make_id=make_id)
+        return queryset    

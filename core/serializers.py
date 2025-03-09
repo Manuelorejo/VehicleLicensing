@@ -8,9 +8,20 @@ from decimal import Decimal
 User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    
     class Meta:
         model = User
-        fields = ['id', 'username', 'phone', 'email']
+        fields = ['id', 'username', 'phone', 'email', 'password']
+        
+    def create(self, validated_data):
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data.get('email', ''),
+            phone=validated_data.get('phone', ''),
+            password=validated_data['password']
+        )
+        return user
 
 class StateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -54,28 +65,48 @@ class FineSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'offense', 'amount', 'issued_at', 'status']
 
 class PaymentSerializer(serializers.ModelSerializer):
-    fine = serializers.PrimaryKeyRelatedField(queryset=Fine.objects.all())
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), default=serializers.CurrentUserDefault())
     class Meta:
         model = Payment
-        fields = ['user', 'fine', 'amount', 'payment_date', 'transaction_id']
+        fields = ['id', 'user', 'fine', 'registration', 'amount', 'transaction_id', 'payment_date', 'payment_type']
+        read_only_fields = ['user', 'payment_date']
 
-    def validate_amount(self, value):
-        fine = self.initial_data.get('fine')
-        if fine:
-            fine_obj = Fine.objects.get(id=fine)
-            if value > fine_obj.amount:
-                raise serializers.ValidationError("Payment amount cannot exceed fine amount.")
-        return value
+    def validate(self, data):
+        # Ensure exactly one of fine or registration is provided
+        if data.get('fine') and data.get('registration'):
+            raise serializers.ValidationError("Payment must be associated with either a fine or a registration, not both.")
+        if not data.get('fine') and not data.get('registration'):
+            raise serializers.ValidationError("Payment must be associated with either a fine or a registration.")
+        return data
+
+    def create(self, validated_data):
+        # Automatically set the user and payment_type
+        validated_data['user'] = self.context['request'].user
+        if validated_data.get('registration'):
+            validated_data['payment_type'] = 'renewal'
+        return Payment.objects.create(**validated_data)
 
 class RegistrationSerializer(serializers.ModelSerializer):
     state = serializers.PrimaryKeyRelatedField(queryset=State.objects.all())
-    user = serializers.PrimaryKeyRelatedField(default=serializers.CurrentUserDefault(), read_only=True)  # Removed queryset
+    user = serializers.PrimaryKeyRelatedField(default=serializers.CurrentUserDefault(), read_only=True) 
     class Meta:
         model = Registration
         fields = ['vehicle', 'user', 'state', 'registration_date', 'expiry_date']
+        read_only_fields = ['registration_date']
 
     def validate_expiry_date(self, value):
         if value < timezone.now():
             raise serializers.ValidationError("Expiry date cannot be in the past.")
         return value
+    
+from .models import CarMake, CarModel
+
+class CarMakeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CarMake
+        fields = ['id', 'name']
+
+class CarModelSerializer(serializers.ModelSerializer):
+    make = CarMakeSerializer(read_only=True)
+    class Meta:
+        model = CarModel
+        fields = ['id', 'name', 'make']    

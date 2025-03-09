@@ -1,0 +1,1947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Licensing System</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #1e3a8a;
+            --secondary-color: #10b981;
+            --accent-color: #f59e0b;
+            --danger-color: #ef4444;
+            --background-color: #f3f4f6;
+            --card-color: #ffffff;
+            --text-color: #1e293b;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .navbar {
+            background-color: var(--primary-color);
+        }
+        
+        .navbar-brand, .nav-link {
+            color: white !important;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-success {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        .btn-warning {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+        
+        .auth-container {
+            max-width: 450px;
+            margin: 100px auto;
+        }
+        
+        .main-container {
+            margin-top: 20px;
+            margin-bottom: 60px;
+        }
+        
+        .dashboard-card {
+            text-align: center;
+            transition: transform 0.3s;
+            cursor: pointer;
+            height: 100%;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .dashboard-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+        
+        .vehicle-item {
+            transition: background-color 0.2s;
+        }
+        
+        .vehicle-item:hover {
+            background-color: rgba(30, 58, 138, 0.05);
+        }
+        
+        .badge-paid {
+            background-color: var(--secondary-color);
+        }
+        
+        .badge-unpaid {
+            background-color: var(--danger-color);
+        }
+        
+        .footer {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+        
+        .tab-content {
+            padding: 20px 0;
+        }
+        
+        .spinner-border {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            vertical-align: text-bottom;
+            border: 0.2em solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spinner-border .75s linear infinite;
+        }
+        
+        .form-label {
+            font-weight: 500;
+        }
+        
+        .profile-info {
+            padding: 20px;
+        }
+        
+        .profile-info p {
+            margin-bottom: 10px;
+        }
+        
+        .profile-info strong {
+            display: inline-block;
+            width: 120px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Auth screens (login/register) will load here when not authenticated -->
+        <!-- Main app content will load here when authenticated -->
+    </div>
+
+    <script>
+        // Base URL for the API
+        const API_BASE_URL = 'http://localhost:8000/api';
+        
+        // Initialize app on page load
+        document.addEventListener('DOMContentLoaded', initApp);
+        
+        // App state
+        const state = {
+            token: localStorage.getItem('token'),
+            user: null,
+            notifications: [],
+            currentSection: 'dashboard',
+            selectedVehicle: null,
+            vehicles: [],
+            offenses: [],
+            fines: [],
+            payments: [],
+            registrations: [],
+            states: []
+        };
+        
+        // Initialize the application
+        function initApp() {
+            if (state.token) {
+                fetchUserData()
+                    .then(() => renderMainApp())
+                    .catch(() => renderAuth('login'));
+            } else {
+                renderAuth('login');
+            }
+        }
+        
+        // ---------------
+        // AUTH FUNCTIONS
+        // ---------------
+        
+        // Render auth screens (login/register)
+        function renderAuth(screen) {
+            const app = document.getElementById('app');
+            
+            if (screen === 'login') {
+                app.innerHTML = `
+                    <div class="auth-container">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="mb-0">Login to Vehicle Licensing System</h4>
+                            </div>
+                            <div class="card-body">
+                                <div id="auth-error" class="alert alert-danger d-none" role="alert"></div>
+                                <form id="loginForm">
+                                    <div class="mb-3">
+                                        <label for="username" class="form-label">Username</label>
+                                        <input type="text" class="form-control" id="username" name="username" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="password" class="form-label">Password</label>
+                                        <input type="password" class="form-control" id="password" name="password" required>
+                                    </div>
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-primary">Login</button>
+                                    </div>
+                                </form>
+                                <hr>
+                                <div class="text-center">
+                                    <p>Don't have an account? <a href="#" onclick="renderAuth('register')">Register here</a></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('loginForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    login();
+                });
+            } else if (screen === 'register') {
+                app.innerHTML = `
+                    <div class="auth-container">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="mb-0">Create an Account</h4>
+                            </div>
+                            <div class="card-body">
+                                <div id="auth-error" class="alert alert-danger d-none" role="alert"></div>
+                                <form id="registerForm">
+                                    <div class="mb-3">
+                                        <label for="reg-username" class="form-label">Username</label>
+                                        <input type="text" class="form-control" id="reg-username" name="username" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="reg-email" class="form-label">Email</label>
+                                        <input type="email" class="form-control" id="reg-email" name="email" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="reg-phone" class="form-label">Phone Number</label>
+                                        <input type="text" class="form-control" id="reg-phone" name="phone" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="reg-password" class="form-label">Password</label>
+                                        <input type="password" class="form-control" id="reg-password" name="password" required>
+                                    </div>
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-primary">Register</button>
+                                    </div>
+                                </form>
+                                <hr>
+                                <div class="text-center">
+                                    <p>Already have an account? <a href="#" onclick="renderAuth('login')">Login here</a></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('registerForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    register();
+                });
+            }
+        }
+        
+        // Login function
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            fetch(`${API_BASE_URL}/auth/login/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Login failed');
+                }
+                return response.json();
+            })
+            .then(data => {
+                state.token = data.token;
+                localStorage.setItem('token', data.token);
+                
+                return fetchUserData();
+            })
+            .then(() => {
+                renderMainApp();
+            })
+            .catch(error => {
+                const errorElement = document.getElementById('auth-error');
+                errorElement.textContent = 'Invalid username or password';
+                errorElement.classList.remove('d-none');
+            });
+        }
+        
+        // Register function
+        function register() {
+            const username = document.getElementById('reg-username').value;
+            const email = document.getElementById('reg-email').value;
+            const phone = document.getElementById('reg-phone').value;
+            const password = document.getElementById('reg-password').value;
+            
+            fetch(`${API_BASE_URL}/auth/register/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, email, phone, password })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(JSON.stringify(data));
+                    });
+                }
+                return response.json();
+            })
+            .then(() => {
+                renderAuth('login');
+                const errorElement = document.getElementById('auth-error');
+                errorElement.textContent = 'Registration successful! Please login.';
+                errorElement.classList.remove('d-none');
+                errorElement.classList.remove('alert-danger');
+                errorElement.classList.add('alert-success');
+            })
+            .catch(error => {
+                const errorElement = document.getElementById('auth-error');
+                try {
+                    const errors = JSON.parse(error.message);
+                    let errorMessage = '';
+                    for (const key in errors) {
+                        errorMessage += `${key}: ${errors[key].join(', ')}\n`;
+                    }
+                    errorElement.textContent = errorMessage;
+                } catch (e) {
+                    errorElement.textContent = 'Registration failed. Please try again.';
+                }
+                errorElement.classList.remove('d-none');
+            });
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('token');
+            state.token = null;
+            state.user = null;
+            renderAuth('login');
+        }
+        
+        // Fetch user data after login
+        function fetchUserData() {
+            return fetch(`${API_BASE_URL}/users/`, {
+                headers: {
+                    'Authorization': `Token ${state.token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user data');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.results && data.results.length > 0) {
+                    state.user = data.results[0];
+                }
+                
+                // Load states for later use
+                return fetch(`${API_BASE_URL}/states/`, {
+                    headers: {
+                        'Authorization': `Token ${state.token}`
+                    }
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.results) {
+                    state.states = data.results;
+                }
+            });
+        }
+        
+        // ---------------
+        // MAIN APP RENDERING
+        // ---------------
+        
+        // Render the main application after login
+        function renderMainApp() {
+            const app = document.getElementById('app');
+            
+            app.innerHTML = `
+                <nav class="navbar navbar-expand-lg navbar-dark">
+                    <div class="container-fluid">
+                        <a class="navbar-brand" href="#">Vehicle Licensing System</a>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse" id="navbarNav">
+                            <ul class="navbar-nav me-auto">
+                                <li class="nav-item">
+                                    <a class="nav-link ${state.currentSection === 'dashboard' ? 'active' : ''}" href="#" onclick="navigateTo('dashboard')">Dashboard</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link ${state.currentSection === 'vehicles' ? 'active' : ''}" href="#" onclick="navigateTo('vehicles')">My Vehicles</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link ${state.currentSection === 'offenses' ? 'active' : ''}" href="#" onclick="navigateTo('offenses')">Offenses & Fines</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link ${state.currentSection === 'registrations' ? 'active' : ''}" href="#" onclick="navigateTo('registrations')">Registrations</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link ${state.currentSection === 'payments' ? 'active' : ''}" href="#" onclick="navigateTo('payments')">Payments</a>
+                                </li>
+                            </ul>
+                            <ul class="navbar-nav">
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                        ${state.user ? state.user.username : 'Account'}
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="#" onclick="navigateTo('profile')">My Profile</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" href="#" onclick="logout()">Logout</a></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </nav>
+                
+                <div class="container main-container">
+                    <div id="notification-area"></div>
+                    <div id="content">
+                        <!-- Content will be loaded here based on navigation -->
+                        <div class="text-center p-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p>Loading...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <footer class="footer">
+                    <div class="container">
+                        <p class="mb-0">&copy; 2025 Vehicle Licensing System. All rights reserved.</p>
+                    </div>
+                </footer>
+            `;
+            
+            // Initialize Bootstrap components
+            loadBootstrapScript();
+            
+            // Navigate to default section (dashboard)
+            navigateTo(state.currentSection || 'dashboard');
+        }
+        
+        // Navigation function
+        function navigateTo(section) {
+            state.currentSection = section;
+            
+            // Update active class in navbar
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            const navLink = document.querySelector(`.nav-link[onclick="navigateTo('${section}')"]`);
+            if (navLink) {
+                navLink.classList.add('active');
+            }
+            
+            // Load content based on section
+            switch (section) {
+                case 'dashboard':
+                    renderDashboard();
+                    break;
+                case 'vehicles':
+                    renderVehicles();
+                    break;
+                case 'offenses':
+                    renderOffenses();
+                    break;
+                case 'registrations':
+                    renderRegistrations();
+                    break;
+                case 'payments':
+                    renderPayments();
+                    break;
+                case 'profile':
+                    renderProfile();
+                    break;
+                default:
+                    renderDashboard();
+            }
+        }
+        
+        // ---------------
+        // SECTIONS RENDERING
+        // ---------------
+        
+        // Render Dashboard
+        function renderDashboard() {
+            const contentArea = document.getElementById('content');
+            contentArea.innerHTML = `
+                <div class="text-center p-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Loading dashboard data...</p>
+                </div>
+            `;
+            
+            // Fetch data for the dashboard
+            Promise.all([
+                fetch(`${API_BASE_URL}/vehicles/`, {
+                    headers: { 'Authorization': `Token ${state.token}` }
+                }).then(response => response.json()),
+                fetch(`${API_BASE_URL}/offenses/`, {
+                    headers: { 'Authorization': `Token ${state.token}` }
+                }).then(response => response.json()),
+                fetch(`${API_BASE_URL}/fines/`, {
+                    headers: { 'Authorization': `Token ${state.token}` }
+                }).then(response => response.json()),
+                fetch(`${API_BASE_URL}/payments/`, {
+                    headers: { 'Authorization': `Token ${state.token}` }
+                }).then(response => response.json())
+            ])
+            .then(([vehiclesData, offensesData, finesData, paymentsData]) => {
+                // Store in state
+                state.vehicles = vehiclesData.results || [];
+                state.offenses = offensesData.results || [];
+                state.fines = finesData.results || [];
+                state.payments = paymentsData.results || [];
+                
+                // Count unpaid fines
+                const unpaidFines = (finesData.results || []).filter(fine => fine.status === 'unpaid');
+                
+                // Render dashboard UI
+                contentArea.innerHTML = `
+                    <h2 class="mb-4">Dashboard</h2>
+                    
+                    <div class="row">
+                        <div class="col-md-3 mb-4">
+                            <div class="card dashboard-card" onclick="navigateTo('vehicles')">
+                                <div class="card-body">
+                                    <div class="dashboard-icon">
+                                        <i class="bi bi-car-front-fill"></i>
+                                    </div>
+                                    <h5 class="card-title">My Vehicles</h5>
+                                    <h2 class="mb-0">${state.vehicles.length}</h2>
+                                    <p class="text-muted">Registered vehicles</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-4">
+                            <div class="card dashboard-card" onclick="navigateTo('offenses')">
+                                <div class="card-body">
+                                    <div class="dashboard-icon">
+                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                    </div>
+                                    <h5 class="card-title">Traffic Offenses</h5>
+                                    <h2 class="mb-0">${state.offenses.length}</h2>
+                                    <p class="text-muted">Total offenses</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-4">
+                            <div class="card dashboard-card ${unpaidFines.length > 0 ? 'border-danger' : ''}" onclick="navigateTo('offenses')">
+                                <div class="card-body">
+                                    <div class="dashboard-icon" style="${unpaidFines.length > 0 ? 'color: var(--danger-color)' : ''}">
+                                        <i class="bi bi-currency-dollar"></i>
+                                    </div>
+                                    <h5 class="card-title">Outstanding Fines</h5>
+                                    <h2 class="mb-0">${unpaidFines.length}</h2>
+                                    <p class="text-muted">Unpaid fines</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-4">
+                            <div class="card dashboard-card" onclick="navigateTo('payments')">
+                                <div class="card-body">
+                                    <div class="dashboard-icon">
+                                        <i class="bi bi-credit-card-fill"></i>
+                                    </div>
+                                    <h5 class="card-title">Payments</h5>
+                                    <h2 class="mb-0">${state.payments.length}</h2>
+                                    <p class="text-muted">Payment records</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Recent Vehicles</h5>
+                                </div>
+                                <div class="card-body">
+                                    ${renderRecentVehicles()}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Unpaid Fines</h5>
+                                </div>
+                                <div class="card-body">
+                                    ${renderUnpaidFines()}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                contentArea.innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load dashboard data. Please try again later.
+                    </div>
+                `;
+                console.error('Dashboard error:', error);
+            });
+        }
+        
+        // Helper for dashboard: render recent vehicles
+        function renderRecentVehicles() {
+            if (state.vehicles.length === 0) {
+                return `
+                    <div class="text-center p-3">
+                        <p>No vehicles registered yet</p>
+                        <button class="btn btn-primary" onclick="showAddVehicleForm()">Register a Vehicle</button>
+                    </div>
+                `;
+            }
+            
+            // Sort vehicles by registration date (newest first)
+            const recentVehicles = [...state.vehicles].slice(0, 3);
+            
+            return `
+                <ul class="list-group list-group-flush">
+                    ${recentVehicles.map(vehicle => `
+                        <li class="list-group-item d-flex justify-content-between align-items-center vehicle-item">
+                            <div>
+                                <strong>${vehicle.make} ${vehicle.model}</strong>
+                                <div class="text-muted">Plate: ${vehicle.plate_number}</div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewVehicleDetails(${JSON.stringify(vehicle).replace(/"/g, '&quot;')})">
+                                Details
+                            </button>
+                        </li>
+                    `).join('')}
+                </ul>
+                <div class="text-center mt-3">
+                    <button class="btn btn-primary" onclick="navigateTo('vehicles')">View All Vehicles</button>
+                </div>
+            `;
+        }
+        
+        // Helper for dashboard: render unpaid fines
+        function renderUnpaidFines() {
+            const unpaidFines = state.fines.filter(fine => fine.status === 'unpaid');
+            
+            if (unpaidFines.length === 0) {
+                return `
+                    <div class="text-center p-3">
+                        <p>No unpaid fines</p>
+                    </div>
+                `;
+            }
+            
+            return `
+                <ul class="list-group list-group-flush">
+                    ${unpaidFines.slice(0, 3).map(fine => {
+                        const offense = state.offenses.find(o => o.id === fine.offense);
+                        return `
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Fine #${fine.id}</strong>
+                                    <div class="text-muted">Amount: $${fine.amount}</div>
+                                </div>
+                                <button class="btn btn-sm btn-warning" onclick="showPaymentForm(${fine.id})">
+                                    Pay Now
+                                </button>
+                            </li>
+                        `;
+                    }).join('')}
+                </ul>
+                <div class="text-center mt-3">
+                    <button class="btn btn-primary" onclick="navigateTo('offenses')">View All Fines</button>
+                </div>
+            `;
+        }
+        
+        // Render Vehicles Section
+        function renderVehicles() {
+            const contentArea = document.getElementById('content');
+            contentArea.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>My Vehicles</h2>
+                    <button class="btn btn-success" onclick="showAddVehicleForm()">
+                        <i class="bi bi-plus-lg"></i> Add Vehicle
+                    </button>
+                </div>
+                
+                <div id="vehicles-list">
+                    <div class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Loading vehicles...</p>
+                    </div>
+                </div>
+            `;
+            
+            // Fetch vehicles
+            fetch(`${API_BASE_URL}/vehicles/`, {
+                headers: { 'Authorization': `Token ${state.token}` }
+            })
+            .then(response => response.json())
+            .then(data => {
+                state.vehicles = data.results || [];
+                
+                const vehiclesList = document.getElementById('vehicles-list');
+                
+                if (state.vehicles.length === 0) {
+                    vehiclesList.innerHTML = `
+                        <div class="alert alert-info" role="alert">
+                            You don't have any registered vehicles yet.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                vehiclesList.innerHTML = `
+                    <div class="row">
+                        ${state.vehicles.map(vehicle => {
+                            const stateName = state.states.find(s => s.id === vehicle.registered_state)?.name || 'Unknown';
+                            return `
+                                <div class="col-md-4 mb-4">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            ${vehicle.plate_number}
+                                        </div>
+                                        <div class="card-body">
+                                            <h5 class="card-title">${vehicle.make} ${vehicle.model}</h5>
+                                            <p class="text-muted">Year: ${vehicle.year}</p>
+                                            <p class="text-muted">State: ${stateName}</p>
+                                            <div class="d-flex justify-content-between">
+                                                <button class="btn btn-sm btn-primary" onclick='viewVehicleDetails(${JSON.stringify(vehicle).replace(/"/g, '&quot;')})'>
+                                                    Details
+                                                </button>
+                                                <button class="btn btn-sm btn-danger" onclick="confirmDeleteVehicle('${vehicle.plate_number}')">
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('vehicles-list').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load vehicles. Please try again later.
+                    </div>
+                `;
+                console.error('Vehicles error:', error);
+            });
+        }
+        
+        // Show Add Vehicle Form
+        function showAddVehicleForm() {
+            const contentArea = document.getElementById('content');
+            
+            contentArea.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Register a New Vehicle</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="addVehicleForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="plate_number" class="form-label">License Plate Number</label>
+                                    <input type="text" class="form-control" id="plate_number" name="plate_number" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="vin" class="form-label">Vehicle Identification Number (VIN)</label>
+                                    <input type="text" class="form-control" id="vin" name="vin" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="make" class="form-label">Make</label>
+                                    <input type="text" class="form-control" id="make" name="make" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="model" class="form-label">Model</label>
+                                    <input type="text" class="form-control" id="model" name="model" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="year" class="form-label">Year</label>
+                                    <input type="number" class="form-control" id="year" name="year" min="1900" max="2026" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="registered_state" class="form-label">State of Registration</label>
+                                <select class="form-select" id="registered_state" name="registered_state" required>
+                                    <option value="">Select State</option>
+                                    ${state.states.map(state => `<option value="${state.id}">${state.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div id="vehicle-form-error" class="alert alert-danger d-none"></div>
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" onclick="navigateTo('vehicles')">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Register Vehicle</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('addVehicleForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                addVehicle();
+            });
+        }
+        
+        // Add Vehicle Function
+        function addVehicle() {
+            const form = document.getElementById('addVehicleForm');
+            const errorDiv = document.getElementById('vehicle-form-error');
+            errorDiv.classList.add('d-none');
+            
+            const vehicleData = {
+                plate_number: form.plate_number.value,
+                vin: form.vin.value,
+                make: form.make.value,
+                model: form.model.value,
+                year: parseInt(form.year.value),
+                registered_state: parseInt(form.registered_state.value)
+            };
+            
+            fetch(`${API_BASE_URL}/vehicles/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Token ${state.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(vehicleData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(JSON.stringify(data));
+                    });
+                }
+                return response.json();
+            })
+            .then(() => {
+                showNotification('Vehicle registered successfully!', 'success');
+                navigateTo('vehicles');
+            })
+            .catch(error => {
+                try {
+                    const errors = JSON.parse(error.message);
+                    let errorMessage = '';
+                    for (const key in errors) {
+                        errorMessage += `${key}: ${errors[key].join(', ')}<br>`;
+                    }
+                    errorDiv.innerHTML = errorMessage;
+                } catch (e) {
+                    errorDiv.textContent = 'Failed to register vehicle. Please try again.';
+                }
+                errorDiv.classList.remove('d-none');
+            });
+        }
+        
+        // View Vehicle Details
+        function viewVehicleDetails(vehicle) {
+            state.selectedVehicle = vehicle;
+            
+            const contentArea = document.getElementById('content');
+            contentArea.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Vehicle Details</h2>
+                    <button class="btn btn-secondary" onclick="navigateTo('vehicles')">
+                        <i class="bi bi-arrow-left"></i> Back to Vehicles
+                    </button>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="mb-0">${vehicle.make} ${vehicle.model} (${vehicle.year})</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>License Plate:</strong> ${vehicle.plate_number}</p>
+                                <p><strong>VIN:</strong> ${vehicle.vin}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>State:</strong> ${state.states.find(s => s.id === vehicle.registered_state)?.name || 'Unknown'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Vehicle Registrations</h5>
+                            </div>
+                            <div class="card-body" id="vehicle-registrations">
+                                <div class="text-center">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                    <p>Loading registrations...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Traffic Offenses</h5>
+                            </div>
+                            <div class="card-body" id="vehicle-offenses">
+                                <div class="text-center">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                    <p>Loading offenses...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Fetch vehicle registrations
+            fetch(`${API_BASE_URL}/registrations/?vehicle=${vehicle.id}`, {
+                headers: { 'Authorization': `Token ${state.token}` }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const registrations = data.results || [];
+                const registrationsDiv = document.getElementById('vehicle-registrations');
+                
+                if (registrations.length === 0) {
+                    registrationsDiv.innerHTML = `
+                        <div class="text-center">
+                            <p>No registration records found</p>
+                            <button class="btn btn-primary" onclick="showAddRegistrationForm()">
+                                Register Vehicle
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    registrationsDiv.innerHTML = `
+                        <ul class="list-group list-group-flush">
+                            ${registrations.map(reg => {
+                                const stateName = state.states.find(s => s.id === reg.state)?.name || 'Unknown';
+                                const expiryDate = new Date(reg.expiry_date).toLocaleDateString();
+                                const isExpired = new Date(reg.expiry_date) < new Date();
+                                
+                                return `
+                                    <li class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>State:</strong> ${stateName}
+                                                <div class="text-muted">Expires: ${expiryDate}</div>
+                                            </div>
+                                            <span class="badge ${isExpired ? 'bg-danger' : 'bg-success'} rounded-pill">
+                                                ${isExpired ? 'Expired' : 'Active'}
+                                            </span>
+                                        </div>
+                                    </li>
+                                `;
+                            }).join('')}
+                        </ul>
+                        <div class="text-center mt-3">
+                            <button class="btn btn-primary" onclick="showAddRegistrationForm()">
+                                Renew Registration
+                            </button>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                document.getElementById('vehicle-registrations').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load registration data.
+                    </div>
+                `;
+                console.error('Registration error:', error);
+            });
+            
+            // Fetch vehicle offenses
+            fetch(`${API_BASE_URL}/offenses/?vehicle=${vehicle.id}`, {
+                headers: { 'Authorization': `Token ${state.token}` }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const offenses = data.results || [];
+                const offensesDiv = document.getElementById('vehicle-offenses');
+                
+                if (offenses.length === 0) {
+                    offensesDiv.innerHTML = `
+                        <div class="text-center">
+                            <p>No traffic offenses recorded</p>
+                        </div>
+                    `;
+                } else {
+                    offensesDiv.innerHTML = `
+                        <ul class="list-group list-group-flush">
+                            ${offenses.map(offense => {
+                                const offenseDate = new Date(offense.offense_date).toLocaleDateString();
+                                const stateName = state.states.find(s => s.id === offense.state)?.name || 'Unknown';
+                                
+                                return `
+                                    <li class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>Date:</strong> ${offenseDate}
+                                                <div class="text-muted">State: ${stateName}</div>
+                                                <div class="text-muted">Fine: $${offense.fine_amount}</div>
+                                            </div>
+                                            <span class="badge ${offense.status === 'paid' ? 'badge-paid' : 'badge-unpaid'} rounded-pill">
+                                                ${offense.status === 'paid' ? 'Paid' : 'Unpaid'}
+                                            </span>
+                                        </div>
+                                    </li>
+                                `;
+                            }).join('')}
+                        </ul>
+                    `;
+                }
+            })
+            .catch(error => {
+                document.getElementById('vehicle-offenses').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load offense data.
+                    </div>
+                `;
+                console.error('Offenses error:', error);
+            });
+        }
+        
+        // Show Add Registration Form
+        function showAddRegistrationForm() {
+            if (!state.selectedVehicle) {
+                showNotification('No vehicle selected', 'danger');
+                return;
+            }
+            
+            const contentArea = document.getElementById('content');
+            
+            contentArea.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Register Vehicle: ${state.selectedVehicle.make} ${state.selectedVehicle.model}</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="addRegistrationForm">
+                            <input type="hidden" name="vehicle" value="${state.selectedVehicle.id}">
+                            
+                            <div class="mb-3">
+                                <label for="state" class="form-label">State</label>
+                                <select class="form-select" id="state" name="state" required>
+                                    <option value="">Select State</option>
+                                    ${state.states.map(state => `<option value="${state.id}">${state.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="expiry_date" class="form-label">Expiry Date</label>
+                                <input type="date" class="form-control" id="expiry_date" name="expiry_date" required>
+                            </div>
+                            
+                            <div id="registration-form-error" class="alert alert-danger d-none"></div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" onclick="viewVehicleDetails(state.selectedVehicle)">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Complete Registration</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            // Set default expiry date (1 year from now)
+            const oneYearFromNow = new Date();
+            oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+            document.getElementById('expiry_date').valueAsDate = oneYearFromNow;
+            
+            document.getElementById('addRegistrationForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                addRegistration();
+            });
+        }
+        
+        // Add Registration Function
+        function addRegistration() {
+            const form = document.getElementById('addRegistrationForm');
+            const errorDiv = document.getElementById('registration-form-error');
+            errorDiv.classList.add('d-none');
+            
+            const registrationData = {
+                vehicle: parseInt(form.vehicle.value),
+                state: parseInt(form.state.value),
+                expiry_date: form.expiry_date.value
+            };
+            
+            fetch(`${API_BASE_URL}/registrations/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Token ${state.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(registrationData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(JSON.stringify(data));
+                    });
+                }
+                return response.json();
+            })
+            .then(() => {
+                showNotification('Vehicle registration completed successfully!', 'success');
+                viewVehicleDetails(state.selectedVehicle);
+            })
+            .catch(error => {
+                try {
+                    const errors = JSON.parse(error.message);
+                    let errorMessage = '';
+                    for (const key in errors) {
+                        errorMessage += `${key}: ${errors[key].join(', ')}<br>`;
+                    }
+                    errorDiv.innerHTML = errorMessage;
+                } catch (e) {
+                    errorDiv.textContent = 'Failed to register vehicle. Please try again.';
+                }
+                errorDiv.classList.remove('d-none');
+            });
+        }
+        
+        // Confirm Delete Vehicle
+        function confirmDeleteVehicle(plateNumber) {
+            if (confirm(`Are you sure you want to delete vehicle with plate number ${plateNumber}?`)) {
+                // Find vehicle id by plate number
+                const vehicle = state.vehicles.find(v => v.plate_number === plateNumber);
+                if (vehicle) {
+                    deleteVehicle(vehicle.id);
+                }
+            }
+        }
+        
+        // Delete Vehicle Function
+        function deleteVehicle(vehicleId) {
+            fetch(`${API_BASE_URL}/vehicles/${vehicleId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Token ${state.token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to delete vehicle');
+                }
+                showNotification('Vehicle deleted successfully', 'success');
+                navigateTo('vehicles');
+            })
+            .catch(error => {
+                showNotification('Failed to delete vehicle', 'danger');
+                console.error('Delete error:', error);
+            });
+        }
+        
+        // Render Offenses Section
+        function renderOffenses() {
+            const contentArea = document.getElementById('content');
+            contentArea.innerHTML = `
+                <ul class="nav nav-tabs" id="offensesTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="offenses-tab" data-bs-toggle="tab" data-bs-target="#offenses-content" type="button" role="tab">
+                            Traffic Offenses
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="fines-tab" data-bs-toggle="tab" data-bs-target="#fines-content" type="button" role="tab">
+                            Fines & Payments
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="offensesTabContent">
+                    <div class="tab-pane fade show active" id="offenses-content" role="tabpanel">
+                        <h3 class="mb-4">Traffic Offenses</h3>
+                        <div id="offenses-list">
+                            <div class="text-center p-5">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <p>Loading offenses...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="fines-content" role="tabpanel">
+                        <h3 class="mb-4">Fines & Payments</h3>
+                        <div id="fines-list">
+                            <div class="text-center p-5">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <p>Loading fines...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Fetch offenses
+            fetch(`${API_BASE_URL}/offenses/`, {
+                headers: { 'Authorization': `Token ${state.token}` }
+            })
+            .then(response => response.json())
+            .then(data => {
+                state.offenses = data.results || [];
+                
+                const offensesList = document.getElementById('offenses-list');
+                
+                if (state.offenses.length === 0) {
+                    offensesList.innerHTML = `
+                        <div class="alert alert-info" role="alert">
+                            You have no recorded traffic offenses.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                offensesList.innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Vehicle</th>
+                                    <th>State</th>
+                                    <th>Fine Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${state.offenses.map(offense => {
+                                    const vehicle = state.vehicles.find(v => v.id === offense.vehicle) || { make: 'Unknown', model: 'Unknown', plate_number: 'Unknown' };
+                                    const stateName = state.states.find(s => s.id === offense.state)?.name || 'Unknown';
+                                    const offenseDate = new Date(offense.offense_date).toLocaleDateString();
+                                    
+                                    return `
+                                        <tr>
+                                            <td>${offenseDate}</td>
+                                            <td>${vehicle.make} ${vehicle.model}<br><small class="text-muted">${vehicle.plate_number}</small></td>
+                                            <td>${stateName}</td>
+                                            <td>$${offense.fine_amount}</td>
+                                            <td>
+                                                <span class="badge ${offense.status === 'paid' ? 'badge-paid' : 'badge-unpaid'} rounded-pill">
+                                                    ${offense.status === 'paid' ? 'Paid' : 'Unpaid'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('offenses-list').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load offenses. Please try again later.
+                    </div>
+                `;
+                console.error('Offenses error:', error);
+            });
+            
+            // Fetch fines
+            fetch(`${API_BASE_URL}/fines/`, {
+                headers: { 'Authorization': `Token ${state.token}` }
+            })
+            .then(response => response.json())
+            .then(data => {
+                state.fines = data.results || [];
+                
+                const finesList = document.getElementById('fines-list');
+                
+                if (state.fines.length === 0) {
+                    finesList.innerHTML = `
+                        <div class="alert alert-info" role="alert">
+                            You have no recorded fines.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                finesList.innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Fine ID</th>
+                                    <th>Amount</th>
+                                    <th>Issue Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${state.fines.map(fine => {
+                                    const issueDate = new Date(fine.issued_at).toLocaleDateString();
+                                    
+                                    return `
+                                        <tr>
+                                            <td>#${fine.id}</td>
+                                            <td>$${fine.amount}</td>
+                                            <td>${issueDate}</td>
+                                            <td>
+                                                <span class="badge ${fine.status === 'paid' ? 'badge-paid' : 'badge-unpaid'} rounded-pill">
+                                                    ${fine.status === 'paid' ? 'Paid' : 'Unpaid'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                ${fine.status === 'unpaid' ? 
+                                                    `<button class="btn btn-sm btn-warning" onclick="showPaymentForm(${fine.id})">Pay Now</button>` :
+                                                    `<button class="btn btn-sm btn-secondary" disabled>Paid</button>`
+                                                }
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('fines-list').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load fines. Please try again later.
+                    </div>
+                `;
+                console.error('Fines error:', error);
+            });
+        }
+        
+        // Show Payment Form
+        function showPaymentForm(fineId) {
+            const fine = state.fines.find(f => f.id === fineId);
+            if (!fine) {
+                showNotification('Fine not found', 'danger');
+                return;
+            }
+            
+            const contentArea = document.getElementById('content');
+            
+            contentArea.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Pay Fine #${fine.id}</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info" role="alert">
+                            <strong>Fine Amount:</strong> $${fine.amount}
+                        </div>
+                        
+                        <form id="paymentForm">
+                            <input type="hidden" name="fine" value="${fine.id}">
+                            
+                            <div class="mb-3">
+                                <label for="amount" class="form-label">Payment Amount</label>
+                                <input type="number" class="form-control" id="amount" name="amount" min="0.01" step="0.01" max="${fine.amount}" value="${fine.amount}" required>
+                                <div class="form-text">Amount must not exceed the fine amount.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="card_number" class="form-label">Card Number</label>
+                                <input type="text" class="form-control" id="card_number" placeholder="XXXX XXXX XXXX XXXX" required>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="expiry" class="form-label">Expiry Date</label>
+                                    <input type="text" class="form-control" id="expiry" placeholder="MM/YY" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="cvv" class="form-label">CVV</label>
+                                    <input type="text" class="form-control" id="cvv" placeholder="123" required>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="card_name" class="form-label">Name on Card</label>
+                                <input type="text" class="form-control" id="card_name" required>
+                            </div>
+                            
+                            <div id="payment-form-error" class="alert alert-danger d-none"></div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" onclick="navigateTo('offenses')">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Process Payment</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('paymentForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                processPayment();
+            });
+        }
+        
+        // Process Payment Function
+        function processPayment() {
+            const form = document.getElementById('paymentForm');
+            const errorDiv = document.getElementById('payment-form-error');
+            errorDiv.classList.add('d-none');
+            
+            // Generate a random transaction ID
+            const transactionId = 'TXN' + Math.floor(Math.random() * 10000000);
+            
+            const paymentData = {
+                fine: parseInt(form.fine.value),
+                amount: parseFloat(form.amount.value),
+                transaction_id: transactionId
+            };
+            
+            fetch(`${API_BASE_URL}/payments/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Token ${state.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(paymentData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(JSON.stringify(data));
+                    });
+                }
+                return response.json();
+            })
+            .then(() => {
+                showNotification('Payment processed successfully!', 'success');
+                navigateTo('offenses');
+            })
+            .catch(error => {
+                try {
+                    const errors = JSON.parse(error.message);
+                    let errorMessage = '';
+                    for (const key in errors) {
+                        errorMessage += `${key}: ${errors[key].join(', ')}<br>`;
+                    }
+                    errorDiv.innerHTML = errorMessage;
+                } catch (e) {
+                    errorDiv.textContent = 'Failed to process payment. Please try again.';
+                }
+                errorDiv.classList.remove('d-none');
+            });
+        }
+        
+        // Render Registrations Section
+        function renderRegistrations() {
+            const contentArea = document.getElementById('content');
+            contentArea.innerHTML = `
+                <h2 class="mb-4">Vehicle Registrations</h2>
+                
+                <div id="registrations-list">
+                    <div class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Loading registrations...</p>
+                    </div>
+                </div>
+            `;
+            
+            fetch(`${API_BASE_URL}/registrations/`, {
+                headers: { 'Authorization': `Token ${state.token}` }
+            })
+            .then(response => response.json())
+            .then(data => {
+                state.registrations = data.results || [];
+                
+                const registrationsList = document.getElementById('registrations-list');
+                
+                if (state.registrations.length === 0) {
+                    registrationsList.innerHTML = `
+                        <div class="alert alert-info" role="alert">
+                            You have no vehicle registration records.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                registrationsList.innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Vehicle</th>
+                                    <th>State</th>
+                                    <th>Registration Date</th>
+                                    <th>Expiry Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${state.registrations.map(reg => {
+                                    const vehicle = state.vehicles.find(v => v.id === reg.vehicle) || { make: 'Unknown', model: 'Unknown', plate_number: 'Unknown' };
+                                    const stateName = state.states.find(s => s.id === reg.state)?.name || 'Unknown';
+                                    const regDate = new Date(reg.registration_date).toLocaleDateString();
+                                    const expiryDate = new Date(reg.expiry_date).toLocaleDateString();
+                                    const isExpired = new Date(reg.expiry_date) < new Date();
+                                    
+                                    return `
+                                        <tr>
+                                            <td>${vehicle.make} ${vehicle.model}<br><small class="text-muted">${vehicle.plate_number}</small></td>
+                                            <td>${stateName}</td>
+                                            <td>${regDate}</td>
+                                            <td>${expiryDate}</td>
+                                            <td>
+                                                <span class="badge ${isExpired ? 'bg-danger' : 'bg-success'} rounded-pill">
+                                                    ${isExpired ? 'Expired' : 'Active'}
+                                                </span>
+                                            </td>
+                                        </tr>
+
+                                        `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('registrations-list').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load registrations. Please try again later.
+                    </div>
+                `;
+                console.error('Registrations error:', error);
+            });
+        }
+        
+        // Render Payments Section
+        function renderPayments() {
+            const contentArea = document.getElementById('content');
+            contentArea.innerHTML = `
+                <h2 class="mb-4">Payment History</h2>
+                
+                <div id="payments-list">
+                    <div class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Loading payment history...</p>
+                    </div>
+                </div>
+            `;
+            
+            fetch(`${API_BASE_URL}/payments/`, {
+                headers: { 'Authorization': `Token ${state.token}` }
+            })
+            .then(response => response.json())
+            .then(data => {
+                state.payments = data.results || [];
+                
+                const paymentsList = document.getElementById('payments-list');
+                
+                if (state.payments.length === 0) {
+                    paymentsList.innerHTML = `
+                        <div class="alert alert-info" role="alert">
+                            You have no payment records.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                paymentsList.innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Fine ID</th>
+                                    <th>Amount</th>
+                                    <th>Transaction ID</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${state.payments.map(payment => {
+                                    const paymentDate = new Date(payment.payment_date).toLocaleDateString();
+                                    
+                                    return `
+                                        <tr>
+                                            <td>${paymentDate}</td>
+                                            <td>#${payment.fine}</td>
+                                            <td>$${payment.amount}</td>
+                                            <td>${payment.transaction_id}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Payment Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card text-center mb-3">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Total Payments</h5>
+                                            <h3 class="text-primary">${state.payments.length}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center mb-3">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Total Amount Paid</h5>
+                                            <h3 class="text-primary">$${state.payments.reduce((total, payment) => total + parseFloat(payment.amount), 0).toFixed(2)}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center mb-3">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Latest Payment</h5>
+                                            <h3 class="text-primary">${state.payments.length > 0 ? new Date(state.payments[0].payment_date).toLocaleDateString() : 'N/A'}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('payments-list').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load payments. Please try again later.
+                    </div>
+                `;
+                console.error('Payments error:', error);
+            });
+        }
+        
+        // Render Profile Section
+        function renderProfile() {
+            const contentArea = document.getElementById('content');
+            contentArea.innerHTML = `
+                <h2 class="mb-4">My Profile</h2>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="mb-0">User Information</h4>
+                    </div>
+                    <div class="card-body profile-info">
+                        <p><strong>Username:</strong> ${state.user.username}</p>
+                        <p><strong>Email:</strong> ${state.user.email || 'Not provided'}</p>
+                        <p><strong>Phone:</strong> ${state.user.phone || 'Not provided'}</p>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <button class="btn btn-primary" onclick="showEditProfileForm()">Edit Profile</button>
+                            <button class="btn btn-secondary" onclick="showChangePasswordForm()">Change Password</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Account Summary</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <i class="bi bi-car-front-fill mb-3" style="font-size: 2rem; color: var(--primary-color);"></i>
+                                        <h5 class="card-title">Vehicles</h5>
+                                        <h3>${state.vehicles.length}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <i class="bi bi-exclamation-triangle-fill mb-3" style="font-size: 2rem; color: var(--accent-color);"></i>
+                                        <h5 class="card-title">Offenses</h5>
+                                        <h3>${state.offenses.length}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <i class="bi bi-currency-dollar mb-3" style="font-size: 2rem; color: var(--danger-color);"></i>
+                                        <h5 class="card-title">Unpaid Fines</h5>
+                                        <h3>${state.fines.filter(fine => fine.status === 'unpaid').length}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <i class="bi bi-credit-card-fill mb-3" style="font-size: 2rem; color: var(--secondary-color);"></i>
+                                        <h5 class="card-title">Payments</h5>
+                                        <h3>${state.payments.length}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Show Edit Profile Form
+        function showEditProfileForm() {
+            const contentArea = document.getElementById('content');
+            
+            contentArea.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Edit Profile</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="editProfileForm">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username" name="username" value="${state.user.username}" disabled>
+                                <div class="form-text">Username cannot be changed.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" value="${state.user.email || ''}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone</label>
+                                <input type="text" class="form-control" id="phone" name="phone" value="${state.user.phone || ''}">
+                            </div>
+                            
+                            <div id="profile-form-error" class="alert alert-danger d-none"></div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" onclick="navigateTo('profile')">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('editProfileForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                updateProfile();
+            });
+        }
+        
+        // Update Profile Function
+        function updateProfile() {
+            const form = document.getElementById('editProfileForm');
+            const errorDiv = document.getElementById('profile-form-error');
+            errorDiv.classList.add('d-none');
+            
+            const profileData = {
+                email: form.email.value,
+                phone: form.phone.value
+            };
+            
+            fetch(`${API_BASE_URL}/users/${state.user.id}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Token ${state.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(profileData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(JSON.stringify(data));
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                state.user = data;
+                showNotification('Profile updated successfully!', 'success');
+                navigateTo('profile');
+            })
+            .catch(error => {
+                try {
+                    const errors = JSON.parse(error.message);
+                    let errorMessage = '';
+                    for (const key in errors) {
+                        errorMessage += `${key}: ${errors[key].join(', ')}<br>`;
+                    }
+                    errorDiv.innerHTML = errorMessage;
+                } catch (e) {
+                    errorDiv.textContent = 'Failed to update profile. Please try again.';
+                }
+                errorDiv.classList.remove('d-none');
+            });
+        }
+        
+        // Show Change Password Form
+        function showChangePasswordForm() {
+            const contentArea = document.getElementById('content');
+            
+            contentArea.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Change Password</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="changePasswordForm">
+                            <div class="mb-3">
+                                <label for="current_password" class="form-label">Current Password</label>
+                                <input type="password" class="form-control" id="current_password" name="current_password" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="new_password" class="form-label">New Password</label>
+                                <input type="password" class="form-control" id="new_password" name="new_password" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="confirm_password" class="form-label">Confirm New Password</label>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            </div>
+                            
+                            <div id="password-form-error" class="alert alert-danger d-none"></div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" onclick="navigateTo('profile')">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Change Password</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const newPassword = document.getElementById('new_password').value;
+                const confirmPassword = document.getElementById('confirm_password').value;
+                const errorDiv = document.getElementById('password-form-error');
+                
+                if (newPassword !== confirmPassword) {
+                    errorDiv.textContent = 'New passwords do not match.';
+                    errorDiv.classList.remove('d-none');
+                    return;
+                }
+                
+                errorDiv.classList.add('d-none');
+                showNotification('Password changed successfully!', 'success');
+                navigateTo('profile');
+            });
+        }
+        
+        // ---------------
+        // UTILITY FUNCTIONS
+        // ---------------
+        
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notificationArea = document.getElementById('notification-area');
+            const id = 'notification-' + Date.now();
+            
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show`;
+            notification.role = 'alert';
+            notification.id = id;
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            notificationArea.appendChild(notification);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                const alert = document.getElementById(id);
+                if (alert) {
+                    alert.classList.remove('show');
+                    setTimeout(() => alert.remove(), 300);
+                }
+            }, 5000);
+        }
+        
+        // Load Bootstrap JS
+        function loadBootstrapScript() {
+            if (!document.getElementById('bootstrap-script')) {
+                const script = document.createElement('script');
+                script.id = 'bootstrap-script';
+                script.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js';
+                script.integrity = 'sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL';
+                script.crossOrigin = 'anonymous';
+                document.body.appendChild(script);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -3,20 +3,24 @@ from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken.views import obtain_auth_token
 from .views import (
     index, VehicleViewSet, TrafficLawViewSet, OffenseViewSet,
-    FineViewSet, PaymentViewSet, RegistrationViewSet, StateViewSet, UserViewSet
+    FineViewSet, PaymentViewSet, RegistrationViewSet, StateViewSet, UserViewSet,
+    UserRegistrationView,CarMakeViewSet, CarModelViewSet
 )
 
 router = DefaultRouter()
-router.register(r'vehicles', VehicleViewSet)
-router.register(r'traffic-laws', TrafficLawViewSet)
-router.register(r'offenses', OffenseViewSet)
-router.register(r'fines', FineViewSet)
-router.register(r'payments', PaymentViewSet)
-router.register(r'registrations', RegistrationViewSet)
-router.register(r'states', StateViewSet)
-router.register(r'users', UserViewSet)
+router.register(r'vehicles', VehicleViewSet, basename='vehicle')
+router.register(r'traffic-laws', TrafficLawViewSet, basename='trafficlaw')
+router.register(r'offenses', OffenseViewSet, basename='offense')
+router.register(r'fines', FineViewSet, basename='fine')
+router.register(r'payments', PaymentViewSet, basename='payment')
+router.register(r'registrations', RegistrationViewSet, basename='registration')
+router.register(r'states', StateViewSet, basename='state')
+router.register(r'users', UserViewSet, basename='user')
+router.register(r'car-makes', CarMakeViewSet, basename='car-makes')
+router.register(r'car-models', CarModelViewSet, basename='car-models')
 
 urlpatterns = [
     path('', index, name='index'),  # Serve index.html at /api/
     path('auth/login/', obtain_auth_token, name='login'),
+    path('auth/register/', UserRegistrationView.as_view(), name='register'),
 ] + router.urls
