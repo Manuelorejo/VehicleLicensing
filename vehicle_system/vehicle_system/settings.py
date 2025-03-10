@@ -19,20 +19,22 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',  # Required for token authentication
     'corsheaders',  # Required for CORS
     'core',  # Your app
-    'rest_framework.authtoken',
     'django_filters',
 ]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',  # Add this
+        'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         'rest_framework.authentication.BasicAuthentication',
     ],
-    # rest of the settings remain the same
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
 }
-
-
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Add this first
@@ -50,11 +52,10 @@ CORS_ALLOW_ALL_ORIGINS = True  # For development only
 
 ROOT_URLCONF = 'vehicle_system.urls'
 
-# In vehicle_system/settings.py
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'static'],  # Add static directory to template dirs
+        'DIRS': [BASE_DIR / 'static'],  # Add this to find index.html
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
