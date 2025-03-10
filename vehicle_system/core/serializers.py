@@ -65,19 +65,25 @@ class FineSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'offense', 'amount', 'issued_at', 'status']
 
 class PaymentSerializer(serializers.ModelSerializer):
-    fine = serializers.PrimaryKeyRelatedField(queryset=Fine.objects.all())
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), default=serializers.CurrentUserDefault())
     class Meta:
         model = Payment
-        fields = ['user', 'fine', 'amount', 'payment_date', 'transaction_id']
+        fields = ['id', 'user', 'fine', 'registration', 'amount', 'transaction_id', 'payment_date', 'payment_type']
+        read_only_fields = ['user', 'payment_date']
 
-    def validate_amount(self, value):
-        fine = self.initial_data.get('fine')
-        if fine:
-            fine_obj = Fine.objects.get(id=fine)
-            if value > fine_obj.amount:
-                raise serializers.ValidationError("Payment amount cannot exceed fine amount.")
-        return value
+    def validate(self, data):
+        # Ensure exactly one of fine or registration is provided
+        if data.get('fine') and data.get('registration'):
+            raise serializers.ValidationError("Payment must be associated with either a fine or a registration, not both.")
+        if not data.get('fine') and not data.get('registration'):
+            raise serializers.ValidationError("Payment must be associated with either a fine or a registration.")
+        return data
+
+    def create(self, validated_data):
+        # Automatically set the user and payment_type
+        validated_data['user'] = self.context['request'].user
+        if validated_data.get('registration'):
+            validated_data['payment_type'] = 'renewal'
+        return Payment.objects.create(**validated_data)
 
 class RegistrationSerializer(serializers.ModelSerializer):
     state = serializers.PrimaryKeyRelatedField(queryset=State.objects.all())
@@ -85,8 +91,93 @@ class RegistrationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Registration
         fields = ['vehicle', 'user', 'state', 'registration_date', 'expiry_date']
+        read_only_fields = ['registration_date']
 
     def validate_expiry_date(self, value):
         if value < timezone.now():
             raise serializers.ValidationError("Expiry date cannot be in the past.")
         return value
+    
+from .models import CarMake, CarModel
+
+class CarMakeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CarMake
+        fields = ['id', 'name']
+
+class CarModelSerializer(serializers.ModelSerializer):
+    make = CarMakeSerializer(read_only=True)
+    class Meta:
+        model = CarModel
+        fields = ['id', 'name', 'make']    
+
+# Add to core/serializers.py
+class LicenseTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LicenseType
+        fields = ['id', 'name', 'description', 'fee']
+
+class LicenseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = License
+        fields = ['id', 'user', 'license_number', 'license_type', 'state', 'issue_date', 'expiry_date', 'status']
+        read_only_fields = ['issue_date']
+    
+    def validate(self, data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            user = request.user
+            if user.fines.filter(status="unpaid").exists():
+                raise serializers.ValidationError("You cannot get a license until all fines are paid.")
+        
+        if 'expiry_date' in data and data['expiry_date'] < timezone.now():
+            raise serializers.ValidationError("Expiry date cannot be in the past.")
+        
+        return data
+
+class LicenseRenewalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LicenseRenewal
+        fields = ['id', 'license', 'user', 'renewed_date', 'previous_expiry', 'new_expiry', 'fee_paid', 'transaction_id']
+        read_only_fields = ['renewed_date', 'user', 'previous_expiry']
+    
+    def validate(self, data):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            user = request.user
+            if user.fines.filter(status="unpaid").exists():
+                raise serializers.ValidationError("You cannot renew a license until all fines are paid.")
+        
+        license_obj = data.get('license')
+        if license_obj and license_obj.status not in ["active", "expired"]:
+            raise serializers.ValidationError(f"License with status '{license_obj.status}' cannot be renewed.")
+        
+        new_expiry = data.get('new_expiry')
+        if new_expiry and new_expiry < timezone.now():
+            raise serializers.ValidationError("New expiry date cannot be in the past.")
+        
+        return data
+    
+    def create(self, validated_data):
+        license_obj = validated_data.get('license')
+        user = self.context['request'].user
+        
+        # Store the previous expiry date
+        previous_expiry = license_obj.expiry_date
+        
+        # Create renewal record
+        renewal = LicenseRenewal.objects.create(
+            license=license_obj,
+            user=user,
+            previous_expiry=previous_expiry,
+            new_expiry=validated_data.get('new_expiry'),
+            fee_paid=validated_data.get('fee_paid'),
+            transaction_id=validated_data.get('transaction_id')
+        )
+        
+        # Update the license with the new expiry date
+        license_obj.expiry_date = validated_data.get('new_expiry')
+        license_obj.status = "active"
+        license_obj.save()
+        
+        return renewal

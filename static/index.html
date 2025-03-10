@@ -5,480 +5,2841 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vehicle Licensing System</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
-        body { font-family: Arial, sans-serif; background: #F3F4F6; color: #1E3A8A; margin: 0; }
-        .container { max-width: 800px; margin: 2rem auto; padding: 1rem; background: white; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        h1 { text-align: center; }
-        h2 { text-align: center; margin-top: 1rem; }
-        form { display: flex; flex-direction: column; gap: 1rem; }
-        input, button, select { padding: 0.5rem; }
-        button { background: #10B981; color: white; border: none; cursor: pointer; }
-        button:hover { background: #059669; }
-        .error { color: red; text-align: center; }
-        .success { color: green; text-align: center; }
-        .button-container { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; justify-content: center; }
-        .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
-        .card-header { font-weight: bold; margin-bottom: 0.5rem; display: flex; justify-content: space-between; }
-        .card-body { margin-bottom: 0.5rem; }
-        .card-footer { display: flex; justify-content: flex-end; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
-        th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #ddd; }
-        th { background-color: #f2f2f2; }
+        :root {
+            --primary-color: #1e3a8a;
+            --secondary-color: #10b981;
+            --accent-color: #f59e0b;
+            --danger-color: #ef4444;
+            --background-color: #f3f4f6;
+            --card-color: #ffffff;
+            --text-color: #1e293b;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .navbar {
+            background-color: var(--primary-color);
+        }
+        
+        .navbar-brand, .nav-link {
+            color: white !important;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            font-weight: 600;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-success {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        
+        .btn-warning {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+            border-color: var(--danger-color);
+        }
+        
+        .auth-container {
+            max-width: 450px;
+            margin: 100px auto;
+        }
+        
+        .main-container {
+            margin-top: 20px;
+            margin-bottom: 60px;
+        }
+        
+        .dashboard-card {
+            text-align: center;
+            transition: transform 0.3s;
+            cursor: pointer;
+            height: 100%;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .dashboard-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+        
+        .vehicle-item {
+            transition: background-color 0.2s;
+        }
+        
+        .vehicle-item:hover {
+            background-color: rgba(30, 58, 138, 0.05);
+        }
+        
+        .badge-paid {
+            background-color: var(--secondary-color);
+        }
+        
+        .badge-unpaid {
+            background-color: var(--danger-color);
+        }
+        
+        .footer {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+        
+        .tab-content {
+            padding: 20px 0;
+        }
+        
+        .spinner-border {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            vertical-align: text-bottom;
+            border: 0.2em solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spinner-border .75s linear infinite;
+        }
+        
+        .form-label {
+            font-weight: 500;
+        }
+        
+        .profile-info {
+            padding: 20px;
+        }
+        
+        .profile-info p {
+            margin-bottom: 10px;
+        }
+        
+        .profile-info strong {
+            display: inline-block;
+            width: 120px;
+        }
     </style>
 </head>
 <body>
-    <div class="container" id="app">
-        <h1>Login</h1>
-        <div id="error" class="error"></div>
-        <form hx-post="/api/auth/login/" hx-target="#app" hx-swap="innerHTML">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Login</button>
-        </form>
+    <div id="app">
+        <!-- Auth screens (login/register) will load here when not authenticated -->
+        <!-- Main app content will load here when authenticated -->
     </div>
+
     <script>
-        // Store token globally
-        let authToken = '';
-
-        document.body.addEventListener('htmx:afterRequest', function(event) {
-            if (event.detail.xhr.status === 200) {
-                try {
-                    const response = JSON.parse(event.detail.xhr.responseText);
-                    if (response.token) {
-                        // Login response
-                        authToken = response.token;
-                        localStorage.setItem('token', authToken);
-                        showDashboard();
-                    }
-                } catch (e) {
-                    // Handle non-JSON responses (like HTML)
-                    // Continue with normal HTMX processing
-                }
+        // Base URL for the API
+        const API_BASE_URL = 'http://localhost:8000/api';
+        
+        // Initialize app on page load
+        document.addEventListener('DOMContentLoaded', initApp);
+        
+        // App state
+        const state = {
+            token: localStorage.getItem('token'),
+            user: null,
+            notifications: [],
+            currentSection: 'dashboard',
+            selectedVehicle: null,
+            vehicles: [],
+            offenses: [],
+            fines: [],
+            payments: [],
+            registrations: [],
+            states: []
+        };
+        
+        // Initialize the application
+        function initApp() {
+            if (state.token) {
+                fetchUserData()
+                    .then(() => renderMainApp())
+                    .catch(() => renderAuth('login'));
             } else {
-                // Handle errors
-                const errorEl = document.getElementById('error');
-                if (errorEl) {
-                    errorEl.innerText = 'Request failed: ' + (event.detail.xhr.statusText || 'Unknown error');
-                }
+                renderAuth('login');
             }
-        });
-
-        // Function to show the main dashboard
-        function showDashboard() {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                return;
-            }
-
-            document.getElementById('app').innerHTML = `
-                <h1>Vehicle Licensing System</h1>
-                <div class="button-container">
-                    <button hx-get="/api/vehicles/" 
-                            hx-headers='{"Authorization": "Token ${token}"}' 
-                            hx-target="#content">
-                        My Vehicles
-                    </button>
-                    <button onclick="showLicenses()">
-                        My Licenses
-                    </button>
-                    <button hx-get="/api/offenses/" 
-                            hx-headers='{"Authorization": "Token ${token}"}' 
-                            hx-target="#content">
-                        Traffic Offenses
-                    </button>
-                    <button hx-get="/api/fines/" 
-                            hx-headers='{"Authorization": "Token ${token}"}' 
-                            hx-target="#content">
-                        My Fines
-                    </button>
-                    <button hx-get="/api/registrations/" 
-                            hx-headers='{"Authorization": "Token ${token}"}' 
-                            hx-target="#content">
-                        Vehicle Registrations
-                    </button>
-                    <button hx-get="/api/payments/" 
-                            hx-headers='{"Authorization": "Token ${token}"}' 
-                            hx-target="#content">
-                        Payment History
-                    </button>
-                    <button onclick="logout()">
-                        Logout
-                    </button>
-                </div>
-                <div id="content" class="content-area">
-                    <h2>Welcome to the Vehicle Licensing System</h2>
-                    <p>Use the buttons above to navigate through the system.</p>
-                </div>
-            `;
         }
-
-        // Function to show licenses
-        function showLicenses() {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                return;
+        
+        // ---------------
+        // AUTH FUNCTIONS
+        // ---------------
+        
+        // Render auth screens (login/register)
+        function renderAuth(screen) {
+            const app = document.getElementById('app');
+            
+            if (screen === 'login') {
+                app.innerHTML = `
+                    <div class="auth-container">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="mb-0">Login to Vehicle Licensing System</h4>
+                            </div>
+                            <div class="card-body">
+                                <div id="auth-error" class="alert alert-danger d-none" role="alert"></div>
+                                <form id="loginForm">
+                                    <div class="mb-3">
+                                        <label for="username" class="form-label">Username</label>
+                                        <input type="text" class="form-control" id="username" name="username" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="password" class="form-label">Password</label>
+                                        <input type="password" class="form-control" id="password" name="password" required>
+                                    </div>
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-primary">Login</button>
+                                    </div>
+                                </form>
+                                <hr>
+                                <div class="text-center">
+                                    <p>Don't have an account? <a href="#" onclick="renderAuth('register')">Register here</a></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('loginForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    login();
+                });
+            } else if (screen === 'register') {
+                app.innerHTML = `
+                    <div class="auth-container">
+                        <div class="card">
+                            <div class="card-header">
+                                <h4 class="mb-0">Create an Account</h4>
+                            </div>
+                            <div class="card-body">
+                                <div id="auth-error" class="alert alert-danger d-none" role="alert"></div>
+                                <form id="registerForm">
+                                    <div class="mb-3">
+                                        <label for="reg-username" class="form-label">Username</label>
+                                        <input type="text" class="form-control" id="reg-username" name="username" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="reg-email" class="form-label">Email</label>
+                                        <input type="email" class="form-control" id="reg-email" name="email" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="reg-phone" class="form-label">Phone Number</label>
+                                        <input type="text" class="form-control" id="reg-phone" name="phone" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="reg-password" class="form-label">Password</label>
+                                        <input type="password" class="form-control" id="reg-password" name="password" required>
+                                    </div>
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-primary">Register</button>
+                                    </div>
+                                </form>
+                                <hr>
+                                <div class="text-center">
+                                    <p>Already have an account? <a href="#" onclick="renderAuth('login')">Login here</a></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('registerForm').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    register();
+                });
             }
-
-            fetch('/api/licenses/', {
+        }
+        
+        // Login function
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            fetch(`${API_BASE_URL}/auth/login/`, {
+                method: 'POST',
                 headers: {
-                    'Authorization': `Token ${token}`
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Login failed');
                 }
+                return response.json();
+            })
+            .then(data => {
+                state.token = data.token;
+                localStorage.setItem('token', data.token);
+                
+                return fetchUserData();
+            })
+            .then(() => {
+                renderMainApp();
+            })
+            .catch(error => {
+                const errorElement = document.getElementById('auth-error');
+                errorElement.textContent = 'Invalid username or password';
+                errorElement.classList.remove('d-none');
+            });
+        }
+        
+        // Register function
+        function register() {
+            const username = document.getElementById('reg-username').value;
+            const email = document.getElementById('reg-email').value;
+            const phone = document.getElementById('reg-phone').value;
+            const password = document.getElementById('reg-password').value;
+            
+            fetch(`${API_BASE_URL}/auth/register/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, email, phone, password })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(JSON.stringify(data));
+                    });
+                }
+                return response.json();
+            })
+            .then(() => {
+                renderAuth('login');
+                const errorElement = document.getElementById('auth-error');
+                errorElement.textContent = 'Registration successful! Please login.';
+                errorElement.classList.remove('d-none');
+                errorElement.classList.remove('alert-danger');
+                errorElement.classList.add('alert-success');
+            })
+            .catch(error => {
+                const errorElement = document.getElementById('auth-error');
+                try {
+                    const errors = JSON.parse(error.message);
+                    let errorMessage = '';
+                    for (const key in errors) {
+                        errorMessage += `${key}: ${errors[key].join(', ')}\n`;
+                    }
+                    errorElement.textContent = errorMessage;
+                } catch (e) {
+                    errorElement.textContent = 'Registration failed. Please try again.';
+                }
+                errorElement.classList.remove('d-none');
+            });
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('token');
+            state.token = null;
+            state.user = null;
+            renderAuth('login');
+        }
+        
+        // Fetch user data after login
+        function fetchUserData() {
+            return fetch(`${API_BASE_URL}/users/`, {
+                headers: {
+                    'Authorization': `Token ${state.token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to fetch user data');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.results && data.results.length > 0) {
+                    state.user = data.results[0];
+                }
+                
+                // Load states for later use
+                return fetch(`${API_BASE_URL}/states/`, {
+                    headers: {
+                        'Authorization': `Token ${state.token}`
+                    }
+                });
             })
             .then(response => response.json())
             .then(data => {
-                const licenses = data.results || [];
+                if (data.results) {
+                    state.states = data.results;
+                }
+            });
+        }
+        
+        // ---------------
+        // MAIN APP RENDERING
+        // ---------------
+        
+        // Render the main application after login
+        function renderMainApp() {
+            const app = document.getElementById('app');
+            
+            app.innerHTML = `
+                <nav class="navbar navbar-expand-lg navbar-dark">
+                    <div class="container-fluid">
+                        <a class="navbar-brand" href="#">Vehicle Licensing System</a>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse" id="navbarNav">
+                            <ul class="navbar-nav me-auto">
+                                <li class="nav-item">
+                                    <a class="nav-link ${state.currentSection === 'dashboard' ? 'active' : ''}" href="#" onclick="navigateTo('dashboard')">Dashboard</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link ${state.currentSection === 'vehicles' ? 'active' : ''}" href="#" onclick="navigateTo('vehicles')">My Vehicles</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link ${state.currentSection === 'offenses' ? 'active' : ''}" href="#" onclick="navigateTo('offenses')">Offenses & Fines</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link ${state.currentSection === 'registrations' ? 'active' : ''}" href="#" onclick="navigateTo('registrations')">Registrations</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link ${state.currentSection === 'payments' ? 'active' : ''}" href="#" onclick="navigateTo('payments')">Payments</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link ${state.currentSection === 'renewals' ? 'active' : ''}" href="#" onclick="navigateTo('renewals')">License Renewals</a>
+                                </li>
                 
-                let html = `
-                    <h2>My Licenses</h2>
-                    <div id="license-message" class="success"></div>
-                `;
+                            </ul>
+                            <ul class="navbar-nav">
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                        ${state.user ? state.user.username : 'Account'}
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="#" onclick="navigateTo('profile')">My Profile</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" href="#" onclick="logout()">Logout</a></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </nav>
                 
-                if (licenses.length === 0) {
-                    html += `<p>You don't have any licenses yet.</p>`;
-                } else {
-                    html += `<div class="licenses-list">`;
+                <div class="container main-container">
+                    <div id="notification-area"></div>
+                    <div id="content">
+                        <!-- Content will be loaded here based on navigation -->
+                        <div class="text-center p-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p>Loading...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <footer class="footer">
+                    <div class="container">
+                        <p class="mb-0">&copy; 2025 Vehicle Licensing System. All rights reserved.</p>
+                    </div>
+                </footer>
+            `;
+            
+            // Initialize Bootstrap components
+            loadBootstrapScript();
+            
+            // Navigate to default section (dashboard)
+            navigateTo(state.currentSection || 'dashboard');
+        }
+        
+        // Navigation function
+        function navigateTo(section) {
+            state.currentSection = section;
+            
+            // Update active class in navbar
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            const navLink = document.querySelector(`.nav-link[onclick="navigateTo('${section}')"]`);
+            if (navLink) {
+                navLink.classList.add('active');
+            }
+            
+            // Load content based on section
+            switch (section) {
+                case 'dashboard':
+                    renderDashboard();
+                    break;
+                case 'vehicles':
+                    renderVehicles();
+                    break;
+                case 'offenses':
+                    renderOffenses();
+                    break;
+                case 'registrations':
+                    renderRegistrations();
+                    break;
+                case 'payments':
+                    renderPayments();
+                    break;
+                case 'profile':
+                    renderProfile();
+                    break;
+                case 'renewals':
+                    renderLicenseRenewals();
+                    break;
+                default:
+                    renderDashboard();
+            }
+        }
+        
+        // ---------------
+        // SECTIONS RENDERING
+        // ---------------
+        
+        // Render Dashboard
+        function renderDashboard() {
+            const contentArea = document.getElementById('content');
+            contentArea.innerHTML = `
+                <div class="text-center p-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Loading dashboard data...</p>
+                </div>
+            `;
+            
+            // Fetch data for the dashboard
+            Promise.all([
+                fetch(`${API_BASE_URL}/vehicles/`, {
+                    headers: { 'Authorization': `Token ${state.token}` }
+                }).then(response => response.json()),
+                fetch(`${API_BASE_URL}/offenses/`, {
+                    headers: { 'Authorization': `Token ${state.token}` }
+                }).then(response => response.json()),
+                fetch(`${API_BASE_URL}/fines/`, {
+                    headers: { 'Authorization': `Token ${state.token}` }
+                }).then(response => response.json()),
+                fetch(`${API_BASE_URL}/payments/`, {
+                    headers: { 'Authorization': `Token ${state.token}` }
+                }).then(response => response.json())
+            ])
+            .then(([vehiclesData, offensesData, finesData, paymentsData]) => {
+                // Store in state
+                state.vehicles = vehiclesData.results || [];
+                state.offenses = offensesData.results || [];
+                state.fines = finesData.results || [];
+                state.payments = paymentsData.results || [];
+                
+                // Count unpaid fines
+                const unpaidFines = (finesData.results || []).filter(fine => fine.status === 'unpaid');
+                
+                // Render dashboard UI
+                contentArea.innerHTML = `
+                    <h2 class="mb-4">Dashboard</h2>
                     
-                    licenses.forEach(license => {
-                        const expiryDate = new Date(license.expiry_date);
-                        const isExpired = expiryDate < new Date();
-                        const statusClass = isExpired ? 'error' : 'success';
-                        
-                        html += `
-                            <div class="card">
-                                <div class="card-header">
-                                    <span>License #${license.license_number}</span>
-                                    <span class="${statusClass}">${isExpired ? 'Expired' : 'Active'}</span>
-                                </div>
+                    <div class="row">
+                        <div class="col-md-3 mb-4">
+                            <div class="card dashboard-card" onclick="navigateTo('vehicles')">
                                 <div class="card-body">
-                                    <p><strong>Type:</strong> ${license.license_type}</p>
-                                    <p><strong>Issued:</strong> ${new Date(license.issue_date).toLocaleDateString()}</p>
-                                    <p><strong>Expires:</strong> ${expiryDate.toLocaleDateString()}</p>
-                                    <p><strong>State:</strong> ${license.state}</p>
-                                </div>
-                                <div class="card-footer">
-                                    <button onclick="showRenewLicenseForm('${license.id}')">
-                                        Renew License
-                                    </button>
+                                    <div class="dashboard-icon">
+                                        <i class="bi bi-car-front-fill"></i>
+                                    </div>
+                                    <h5 class="card-title">My Vehicles</h5>
+                                    <h2 class="mb-0">${state.vehicles.length}</h2>
+                                    <p class="text-muted">Registered vehicles</p>
                                 </div>
                             </div>
-                        `;
-                    });
+                        </div>
+                        
+                        <div class="col-md-3 mb-4">
+                            <div class="card dashboard-card" onclick="navigateTo('offenses')">
+                                <div class="card-body">
+                                    <div class="dashboard-icon">
+                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                    </div>
+                                    <h5 class="card-title">Traffic Offenses</h5>
+                                    <h2 class="mb-0">${state.offenses.length}</h2>
+                                    <p class="text-muted">Total offenses</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-4">
+                            <div class="card dashboard-card ${unpaidFines.length > 0 ? 'border-danger' : ''}" onclick="navigateTo('offenses')">
+                                <div class="card-body">
+                                    <div class="dashboard-icon" style="${unpaidFines.length > 0 ? 'color: var(--danger-color)' : ''}">
+                                        <i class="bi bi-currency-dollar"></i>
+                                    </div>
+                                    <h5 class="card-title">Outstanding Fines</h5>
+                                    <h2 class="mb-0">${unpaidFines.length}</h2>
+                                    <p class="text-muted">Unpaid fines</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 mb-4">
+                            <div class="card dashboard-card" onclick="navigateTo('payments')">
+                                <div class="card-body">
+                                    <div class="dashboard-icon">
+                                        <i class="bi bi-credit-card-fill"></i>
+                                    </div>
+                                    <h5 class="card-title">Payments</h5>
+                                    <h2 class="mb-0">${state.payments.length}</h2>
+                                    <p class="text-muted">Payment records</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+
+                        <div class="col-md-3 mb-4">
+                            <div class="card dashboard-card" onclick="navigateTo('renewals')">
+                                <div class="card-body">
+                                    <div class="dashboard-icon">
+                                        <i class="bi bi-card-checklist"></i>
+                                    </div>
+                                    <h5 class="card-title">License Renewals</h5>
+                                    <h2 class="mb-0">
+                                        ${state.registrations ? state.registrations.filter(r => {
+                                            const expiryDate = new Date(r.expiry_date);
+                                            const today = new Date();
+                                            const thirtyDaysFromNow = new Date();
+                                            thirtyDaysFromNow.setDate(today.getDate() + 30);
+                                            return expiryDate > today && expiryDate <= thirtyDaysFromNow;
+                                        }).length : '0'}
+                                    </h2>
+                                    <p class="text-muted">Renewals due soon</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
                     
-                    html += `</div>`;
-                }
-                
-                html += `
-                    <div class="button-container">
-                        <button onclick="showNewLicenseForm()">
-                            Apply for New License
-                        </button>
+                    <div class="row mt-4">
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Recent Vehicles</h5>
+                                </div>
+                                <div class="card-body">
+                                    ${renderRecentVehicles()}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0">Unpaid Fines</h5>
+                                </div>
+                                <div class="card-body">
+                                    ${renderUnpaidFines()}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 `;
-                
-                document.getElementById('content').innerHTML = html;
             })
             .catch(error => {
-                document.getElementById('content').innerHTML = `
-                    <h2>My Licenses</h2>
-                    <div class="error">Error loading licenses: ${error.message}</div>
+                contentArea.innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load dashboard data. Please try again later.
+                    </div>
                 `;
+                console.error('Dashboard error:', error);
             });
         }
-
-        // Function to show license renewal form
-        function showRenewLicenseForm(licenseId) {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                return;
+        
+        // Helper for dashboard: render recent vehicles
+        function renderRecentVehicles() {
+            if (state.vehicles.length === 0) {
+                return `
+                    <div class="text-center p-3">
+                        <p>No vehicles registered yet</p>
+                        <button class="btn btn-primary" onclick="showAddVehicleForm()">Register a Vehicle</button>
+                    </div>
+                `;
             }
-
-            fetch(`/api/licenses/${licenseId}/`, {
-                headers: {
-                    'Authorization': `Token ${token}`
-                }
+            
+            // Sort vehicles by registration date (newest first)
+            const recentVehicles = [...state.vehicles].slice(0, 3);
+            
+            return `
+                <ul class="list-group list-group-flush">
+                    ${recentVehicles.map(vehicle => `
+                        <li class="list-group-item d-flex justify-content-between align-items-center vehicle-item">
+                            <div>
+                                <strong>${vehicle.make} ${vehicle.model}</strong>
+                                <div class="text-muted">Plate: ${vehicle.plate_number}</div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewVehicleDetails(${JSON.stringify(vehicle).replace(/"/g, '&quot;')})">
+                                Details
+                            </button>
+                        </li>
+                    `).join('')}
+                </ul>
+                <div class="text-center mt-3">
+                    <button class="btn btn-primary" onclick="navigateTo('vehicles')">View All Vehicles</button>
+                </div>
+            `;
+        }
+        
+        // Helper for dashboard: render unpaid fines
+        function renderUnpaidFines() {
+            const unpaidFines = state.fines.filter(fine => fine.status === 'unpaid');
+            
+            if (unpaidFines.length === 0) {
+                return `
+                    <div class="text-center p-3">
+                        <p>No unpaid fines</p>
+                    </div>
+                `;
+            }
+            
+            return `
+                <ul class="list-group list-group-flush">
+                    ${unpaidFines.slice(0, 3).map(fine => {
+                        const offense = state.offenses.find(o => o.id === fine.offense);
+                        return `
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Fine #${fine.id}</strong>
+                                    <div class="text-muted">Amount: $${fine.amount}</div>
+                                </div>
+                                <button class="btn btn-sm btn-warning" onclick="showPaymentForm(${fine.id})">
+                                    Pay Now
+                                </button>
+                            </li>
+                        `;
+                    }).join('')}
+                </ul>
+                <div class="text-center mt-3">
+                    <button class="btn btn-primary" onclick="navigateTo('offenses')">View All Fines</button>
+                </div>
+            `;
+        }
+        
+        // Render Vehicles Section
+        function renderVehicles() {
+            const contentArea = document.getElementById('content');
+            contentArea.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>My Vehicles</h2>
+                    <button class="btn btn-success" onclick="showAddVehicleForm()">
+                        <i class="bi bi-plus-lg"></i> Add Vehicle
+                    </button>
+                </div>
+                
+                <div id="vehicles-list">
+                    <div class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Loading vehicles...</p>
+                    </div>
+                </div>
+            `;
+            
+            // Fetch vehicles
+            fetch(`${API_BASE_URL}/vehicles/`, {
+                headers: { 'Authorization': `Token ${state.token}` }
             })
             .then(response => response.json())
-            .then(license => {
-                // Calculate date one year from now
-                const today = new Date();
-                const oneYearFromNow = new Date(today);
-                oneYearFromNow.setFullYear(today.getFullYear() + 1);
+            .then(data => {
+                state.vehicles = data.results || [];
                 
-                const formattedDate = oneYearFromNow.toISOString().split('T')[0];
-                const currentExpiry = new Date(license.expiry_date).toLocaleDateString();
+                const vehiclesList = document.getElementById('vehicles-list');
                 
-                const html = `
-                    <h2>Renew License</h2>
-                    
-                    <div class="card">
-                        <div class="card-header">
-                            <span>License #${license.license_number}</span>
+                if (state.vehicles.length === 0) {
+                    vehiclesList.innerHTML = `
+                        <div class="alert alert-info" role="alert">
+                            You don't have any registered vehicles yet.
                         </div>
-                        <div class="card-body">
-                            <p><strong>Current Expiry:</strong> ${currentExpiry}</p>
-                            <p><strong>Status:</strong> ${license.status}</p>
-                        </div>
+                    `;
+                    return;
+                }
+                
+                vehiclesList.innerHTML = `
+                    <div class="row">
+                        ${state.vehicles.map(vehicle => {
+                            const stateName = state.states.find(s => s.id === vehicle.registered_state)?.name || 'Unknown';
+                            return `
+                                <div class="col-md-4 mb-4">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            ${vehicle.plate_number}
+                                        </div>
+                                        <div class="card-body">
+                                            <h5 class="card-title">${vehicle.make} ${vehicle.model}</h5>
+                                            <p class="text-muted">Year: ${vehicle.year}</p>
+                                            <p class="text-muted">State: ${stateName}</p>
+                                            <div class="d-flex justify-content-between">
+                                                <button class="btn btn-sm btn-primary" onclick='viewVehicleDetails(${JSON.stringify(vehicle).replace(/"/g, '&quot;')})'>
+                                                    Details
+                                                </button>
+                                                <button class="btn btn-sm btn-danger" onclick="confirmDeleteVehicle('${vehicle.plate_number}')">
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
                     </div>
-                    
-                    <form id="renewal-form">
-                        <input type="hidden" id="license-id" value="${license.id}">
-                        
-                        <label for="new-expiry">New Expiry Date:</label>
-                        <input type="date" id="new-expiry" name="new_expiry" 
-                               value="${formattedDate}" min="${today.toISOString().split('T')[0]}" required>
-                        
-                        <label for="fee-paid">Fee Amount:</label>
-                        <input type="number" id="fee-paid" name="fee_paid" 
-                               value="50.00" min="0" step="0.01" required>
-                        
-                        <label for="transaction-id">Transaction ID:</label>
-                        <input type="text" id="transaction-id" name="transaction_id" 
-                               placeholder="Enter payment transaction ID" required>
-                        
-                        <div class="button-container">
-                            <button type="button" onclick="submitLicenseRenewal()">
-                                Complete Renewal
-                            </button>
-                            <button type="button" onclick="showLicenses()">
-                                Cancel
-                            </button>
-                        </div>
-                    </form>
-                    
-                    <div id="renewal-message" class="error"></div>
                 `;
-                
-                document.getElementById('content').innerHTML = html;
             })
             .catch(error => {
-                document.getElementById('content').innerHTML = `
-                    <h2>Renew License</h2>
-                    <div class="error">Error loading license: ${error.message}</div>
-                    <div class="button-container">
-                        <button onclick="showLicenses()">Back to Licenses</button>
+                document.getElementById('vehicles-list').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load vehicles. Please try again later.
                     </div>
                 `;
+                console.error('Vehicles error:', error);
             });
         }
-
-        // Function to submit license renewal
-        function submitLicenseRenewal() {
-            const token = localStorage.getItem('token');
-            if (!token) {
+        
+        // Show Add Vehicle Form
+        function showAddVehicleForm() {
+            const contentArea = document.getElementById('content');
+            
+            contentArea.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Register a New Vehicle</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="addVehicleForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="plate_number" class="form-label">License Plate Number</label>
+                                    <input type="text" class="form-control" id="plate_number" name="plate_number" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="vin" class="form-label">Vehicle Identification Number (VIN)</label>
+                                    <input type="text" class="form-control" id="vin" name="vin" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label for="make" class="form-label">Make</label>
+                                    <input type="text" class="form-control" id="make" name="make" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="model" class="form-label">Model</label>
+                                    <input type="text" class="form-control" id="model" name="model" required>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label for="year" class="form-label">Year</label>
+                                    <input type="number" class="form-control" id="year" name="year" min="1900" max="2026" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="registered_state" class="form-label">State of Registration</label>
+                                <select class="form-select" id="registered_state" name="registered_state" required>
+                                    <option value="">Select State</option>
+                                    ${state.states.map(state => `<option value="${state.id}">${state.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div id="vehicle-form-error" class="alert alert-danger d-none"></div>
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" onclick="navigateTo('vehicles')">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Register Vehicle</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('addVehicleForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                addVehicle();
+            });
+        }
+        
+        // Add Vehicle Function
+        function addVehicle() {
+            const form = document.getElementById('addVehicleForm');
+            const errorDiv = document.getElementById('vehicle-form-error');
+            errorDiv.classList.add('d-none');
+            
+            const vehicleData = {
+                plate_number: form.plate_number.value,
+                vin: form.vin.value,
+                make: form.make.value,
+                model: form.model.value,
+                year: parseInt(form.year.value),
+                registered_state: parseInt(form.registered_state.value)
+            };
+            
+            fetch(`${API_BASE_URL}/vehicles/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Token ${state.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(vehicleData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(JSON.stringify(data));
+                    });
+                }
+                return response.json();
+            })
+            .then(() => {
+                showNotification('Vehicle registered successfully!', 'success');
+                navigateTo('vehicles');
+            })
+            .catch(error => {
+                try {
+                    const errors = JSON.parse(error.message);
+                    let errorMessage = '';
+                    for (const key in errors) {
+                        errorMessage += `${key}: ${errors[key].join(', ')}<br>`;
+                    }
+                    errorDiv.innerHTML = errorMessage;
+                } catch (e) {
+                    errorDiv.textContent = 'Failed to register vehicle. Please try again.';
+                }
+                errorDiv.classList.remove('d-none');
+            });
+        }
+        
+        // View Vehicle Details
+        function viewVehicleDetails(vehicle) {
+            state.selectedVehicle = vehicle;
+            
+            const contentArea = document.getElementById('content');
+            contentArea.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Vehicle Details</h2>
+                    <button class="btn btn-secondary" onclick="navigateTo('vehicles')">
+                        <i class="bi bi-arrow-left"></i> Back to Vehicles
+                    </button>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="mb-0">${vehicle.make} ${vehicle.model} (${vehicle.year})</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>License Plate:</strong> ${vehicle.plate_number}</p>
+                                <p><strong>VIN:</strong> ${vehicle.vin}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>State:</strong> ${state.states.find(s => s.id === vehicle.registered_state)?.name || 'Unknown'}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Vehicle Registrations</h5>
+                            </div>
+                            <div class="card-body" id="vehicle-registrations">
+                                <div class="text-center">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                    <p>Loading registrations...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Traffic Offenses</h5>
+                            </div>
+                            <div class="card-body" id="vehicle-offenses">
+                                <div class="text-center">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                    <p>Loading offenses...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Fetch vehicle registrations
+            fetch(`${API_BASE_URL}/registrations/?vehicle=${vehicle.id}`, {
+                headers: { 'Authorization': `Token ${state.token}` }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const registrations = data.results || [];
+                const registrationsDiv = document.getElementById('vehicle-registrations');
+                
+                if (registrations.length === 0) {
+                    registrationsDiv.innerHTML = `
+                        <div class="text-center">
+                            <p>No registration records found</p>
+                            <button class="btn btn-primary" onclick="showAddRegistrationForm()">
+                                Register Vehicle
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    registrationsDiv.innerHTML = `
+                        <ul class="list-group list-group-flush">
+                            ${registrations.map(reg => {
+                                const stateName = state.states.find(s => s.id === reg.state)?.name || 'Unknown';
+                                const expiryDate = new Date(reg.expiry_date).toLocaleDateString();
+                                const isExpired = new Date(reg.expiry_date) < new Date();
+                                
+                                return `
+                                    <li class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>State:</strong> ${stateName}
+                                                <div class="text-muted">Expires: ${expiryDate}</div>
+                                            </div>
+                                            <span class="badge ${isExpired ? 'bg-danger' : 'bg-success'} rounded-pill">
+                                                ${isExpired ? 'Expired' : 'Active'}
+                                            </span>
+                                        </div>
+                                    </li>
+                                `;
+                            }).join('')}
+                        </ul>
+                        <div class="text-center mt-3">
+                            <button class="btn btn-primary" onclick="showAddRegistrationForm()">
+                                Renew Registration
+                            </button>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                document.getElementById('vehicle-registrations').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load registration data.
+                    </div>
+                `;
+                console.error('Registration error:', error);
+            });
+            
+            // Fetch vehicle offenses
+            fetch(`${API_BASE_URL}/offenses/?vehicle=${vehicle.id}`, {
+                headers: { 'Authorization': `Token ${state.token}` }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const offenses = data.results || [];
+                const offensesDiv = document.getElementById('vehicle-offenses');
+                
+                if (offenses.length === 0) {
+                    offensesDiv.innerHTML = `
+                        <div class="text-center">
+                            <p>No traffic offenses recorded</p>
+                        </div>
+                    `;
+                } else {
+                    offensesDiv.innerHTML = `
+                        <ul class="list-group list-group-flush">
+                            ${offenses.map(offense => {
+                                const offenseDate = new Date(offense.offense_date).toLocaleDateString();
+                                const stateName = state.states.find(s => s.id === offense.state)?.name || 'Unknown';
+                                
+                                return `
+                                    <li class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>Date:</strong> ${offenseDate}
+                                                <div class="text-muted">State: ${stateName}</div>
+                                                <div class="text-muted">Fine: $${offense.fine_amount}</div>
+                                            </div>
+                                            <span class="badge ${offense.status === 'paid' ? 'badge-paid' : 'badge-unpaid'} rounded-pill">
+                                                ${offense.status === 'paid' ? 'Paid' : 'Unpaid'}
+                                            </span>
+                                        </div>
+                                    </li>
+                                `;
+                            }).join('')}
+                        </ul>
+                    `;
+                }
+            })
+            .catch(error => {
+                document.getElementById('vehicle-offenses').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load offense data.
+                    </div>
+                `;
+                console.error('Offenses error:', error);
+            });
+        }
+        
+        // Show Add Registration Form
+        function showAddRegistrationForm() {
+            if (!state.selectedVehicle) {
+                showNotification('No vehicle selected', 'danger');
                 return;
             }
-
-            const licenseId = document.getElementById('license-id').value;
-            const newExpiry = document.getElementById('new-expiry').value;
-            const feePaid = document.getElementById('fee-paid').value;
-            const transactionId = document.getElementById('transaction-id').value;
             
-            // Format expiry date with time
-            const expiryDate = new Date(newExpiry);
-            expiryDate.setHours(23, 59, 59);
+            const contentArea = document.getElementById('content');
             
-            const renewalData = {
-                license: licenseId,
-                new_expiry: expiryDate.toISOString(),
-                fee_paid: parseFloat(feePaid),
+            contentArea.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Register Vehicle: ${state.selectedVehicle.make} ${state.selectedVehicle.model}</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="addRegistrationForm">
+                            <input type="hidden" name="vehicle" value="${state.selectedVehicle.id}">
+                            
+                            <div class="mb-3">
+                                <label for="state" class="form-label">State</label>
+                                <select class="form-select" id="state" name="state" required>
+                                    <option value="">Select State</option>
+                                    ${state.states.map(state => `<option value="${state.id}">${state.name}</option>`).join('')}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="expiry_date" class="form-label">Expiry Date</label>
+                                <input type="date" class="form-control" id="expiry_date" name="expiry_date" required>
+                            </div>
+                            
+                            <div id="registration-form-error" class="alert alert-danger d-none"></div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" onclick="viewVehicleDetails(state.selectedVehicle)">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Complete Registration</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            // Set default expiry date (1 year from now)
+            const oneYearFromNow = new Date();
+            oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+            document.getElementById('expiry_date').valueAsDate = oneYearFromNow;
+            
+            document.getElementById('addRegistrationForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                addRegistration();
+            });
+        }
+        
+        // Add Registration Function
+        function addRegistration() {
+            const form = document.getElementById('addRegistrationForm');
+            const errorDiv = document.getElementById('registration-form-error');
+            errorDiv.classList.add('d-none');
+            
+            const registrationData = {
+                vehicle: parseInt(form.vehicle.value),
+                state: parseInt(form.state.value),
+                expiry_date: form.expiry_date.value
+            };
+            
+            fetch(`${API_BASE_URL}/registrations/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Token ${state.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(registrationData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(JSON.stringify(data));
+                    });
+                }
+                return response.json();
+            })
+            .then(() => {
+                showNotification('Vehicle registration completed successfully!', 'success');
+                viewVehicleDetails(state.selectedVehicle);
+            })
+            .catch(error => {
+                try {
+                    const errors = JSON.parse(error.message);
+                    let errorMessage = '';
+                    for (const key in errors) {
+                        errorMessage += `${key}: ${errors[key].join(', ')}<br>`;
+                    }
+                    errorDiv.innerHTML = errorMessage;
+                } catch (e) {
+                    errorDiv.textContent = 'Failed to register vehicle. Please try again.';
+                }
+                errorDiv.classList.remove('d-none');
+            });
+        }
+        
+        // Confirm Delete Vehicle
+        function confirmDeleteVehicle(plateNumber) {
+            if (confirm(`Are you sure you want to delete vehicle with plate number ${plateNumber}?`)) {
+                // Find vehicle id by plate number
+                const vehicle = state.vehicles.find(v => v.plate_number === plateNumber);
+                if (vehicle) {
+                    deleteVehicle(vehicle.id);
+                }
+            }
+        }
+        
+        // Delete Vehicle Function
+        function deleteVehicle(vehicleId) {
+            fetch(`${API_BASE_URL}/vehicles/${vehicleId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Token ${state.token}`
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to delete vehicle');
+                }
+                showNotification('Vehicle deleted successfully', 'success');
+                navigateTo('vehicles');
+            })
+            .catch(error => {
+                showNotification('Failed to delete vehicle', 'danger');
+                console.error('Delete error:', error);
+            });
+        }
+        
+        // Render Offenses Section
+        function renderOffenses() {
+            const contentArea = document.getElementById('content');
+            contentArea.innerHTML = `
+                <ul class="nav nav-tabs" id="offensesTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="offenses-tab" data-bs-toggle="tab" data-bs-target="#offenses-content" type="button" role="tab">
+                            Traffic Offenses
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="fines-tab" data-bs-toggle="tab" data-bs-target="#fines-content" type="button" role="tab">
+                            Fines & Payments
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="offensesTabContent">
+                    <div class="tab-pane fade show active" id="offenses-content" role="tabpanel">
+                        <h3 class="mb-4">Traffic Offenses</h3>
+                        <div id="offenses-list">
+                            <div class="text-center p-5">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <p>Loading offenses...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="fines-content" role="tabpanel">
+                        <h3 class="mb-4">Fines & Payments</h3>
+                        <div id="fines-list">
+                            <div class="text-center p-5">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <p>Loading fines...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Fetch offenses
+            fetch(`${API_BASE_URL}/offenses/`, {
+                headers: { 'Authorization': `Token ${state.token}` }
+            })
+            .then(response => response.json())
+            .then(data => {
+                state.offenses = data.results || [];
+                
+                const offensesList = document.getElementById('offenses-list');
+                
+                if (state.offenses.length === 0) {
+                    offensesList.innerHTML = `
+                        <div class="alert alert-info" role="alert">
+                            You have no recorded traffic offenses.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                offensesList.innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Vehicle</th>
+                                    <th>State</th>
+                                    <th>Fine Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${state.offenses.map(offense => {
+                                    const vehicle = state.vehicles.find(v => v.id === offense.vehicle) || { make: 'Unknown', model: 'Unknown', plate_number: 'Unknown' };
+                                    const stateName = state.states.find(s => s.id === offense.state)?.name || 'Unknown';
+                                    const offenseDate = new Date(offense.offense_date).toLocaleDateString();
+                                    
+                                    return `
+                                        <tr>
+                                            <td>${offenseDate}</td>
+                                            <td>${vehicle.make} ${vehicle.model}<br><small class="text-muted">${vehicle.plate_number}</small></td>
+                                            <td>${stateName}</td>
+                                            <td>$${offense.fine_amount}</td>
+                                            <td>
+                                                <span class="badge ${offense.status === 'paid' ? 'badge-paid' : 'badge-unpaid'} rounded-pill">
+                                                    ${offense.status === 'paid' ? 'Paid' : 'Unpaid'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('offenses-list').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load offenses. Please try again later.
+                    </div>
+                `;
+                console.error('Offenses error:', error);
+            });
+            
+            // Fetch fines
+            fetch(`${API_BASE_URL}/fines/`, {
+                headers: { 'Authorization': `Token ${state.token}` }
+            })
+            .then(response => response.json())
+            .then(data => {
+                state.fines = data.results || [];
+                
+                const finesList = document.getElementById('fines-list');
+                
+                if (state.fines.length === 0) {
+                    finesList.innerHTML = `
+                        <div class="alert alert-info" role="alert">
+                            You have no recorded fines.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                finesList.innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Fine ID</th>
+                                    <th>Amount</th>
+                                    <th>Issue Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${state.fines.map(fine => {
+                                    const issueDate = new Date(fine.issued_at).toLocaleDateString();
+                                    
+                                    return `
+                                        <tr>
+                                            <td>#${fine.id}</td>
+                                            <td>$${fine.amount}</td>
+                                            <td>${issueDate}</td>
+                                            <td>
+                                                <span class="badge ${fine.status === 'paid' ? 'badge-paid' : 'badge-unpaid'} rounded-pill">
+                                                    ${fine.status === 'paid' ? 'Paid' : 'Unpaid'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                ${fine.status === 'unpaid' ? 
+                                                    `<button class="btn btn-sm btn-warning" onclick="showPaymentForm(${fine.id})">Pay Now</button>` :
+                                                    `<button class="btn btn-sm btn-secondary" disabled>Paid</button>`
+                                                }
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('fines-list').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load fines. Please try again later.
+                    </div>
+                `;
+                console.error('Fines error:', error);
+            });
+        }
+        
+        // Show Payment Form
+        function showPaymentForm(fineId) {
+            const fine = state.fines.find(f => f.id === fineId);
+            if (!fine) {
+                showNotification('Fine not found', 'danger');
+                return;
+            }
+            
+            const contentArea = document.getElementById('content');
+            
+            contentArea.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Pay Fine #${fine.id}</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info" role="alert">
+                            <strong>Fine Amount:</strong> $${fine.amount}
+                        </div>
+                        
+                        <form id="paymentForm">
+                            <input type="hidden" name="fine" value="${fine.id}">
+                            
+                            <div class="mb-3">
+                                <label for="amount" class="form-label">Payment Amount</label>
+                                <input type="number" class="form-control" id="amount" name="amount" min="0.01" step="0.01" max="${fine.amount}" value="${fine.amount}" required>
+                                <div class="form-text">Amount must not exceed the fine amount.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="card_number" class="form-label">Card Number</label>
+                                <input type="text" class="form-control" id="card_number" placeholder="XXXX XXXX XXXX XXXX" required>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="expiry" class="form-label">Expiry Date</label>
+                                    <input type="text" class="form-control" id="expiry" placeholder="MM/YY" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="cvv" class="form-label">CVV</label>
+                                    <input type="text" class="form-control" id="cvv" placeholder="123" required>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="card_name" class="form-label">Name on Card</label>
+                                <input type="text" class="form-control" id="card_name" required>
+                            </div>
+                            
+                            <div id="payment-form-error" class="alert alert-danger d-none"></div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" onclick="navigateTo('offenses')">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Process Payment</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('paymentForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                processPayment();
+            });
+        }
+        
+        // Process Payment Function
+        function processPayment() {
+            const form = document.getElementById('paymentForm');
+            const errorDiv = document.getElementById('payment-form-error');
+            errorDiv.classList.add('d-none');
+            
+            // Generate a random transaction ID
+            const transactionId = 'TXN' + Math.floor(Math.random() * 10000000);
+            
+            const paymentData = {
+                fine: parseInt(form.fine.value),
+                amount: parseFloat(form.amount.value),
                 transaction_id: transactionId
             };
             
-            fetch('/api/license-renewals/', {
+            fetch(`${API_BASE_URL}/payments/`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Token ${token}`,
+                    'Authorization': `Token ${state.token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(renewalData)
+                body: JSON.stringify(paymentData)
             })
             .then(response => {
-                if (response.ok) {
+                if (!response.ok) {
                     return response.json().then(data => {
-                        const message = document.getElementById('renewal-message');
-                        message.className = 'success';
-                        message.textContent = 'License renewed successfully!';
-                        
-                        // Redirect back to licenses list after 2 seconds
-                        setTimeout(showLicenses, 2000);
-                    });
-                } else {
-                    return response.json().then(errors => {
-                        const message = document.getElementById('renewal-message');
-                        message.className = 'error';
-                        message.textContent = Object.values(errors).flat().join(', ');
+                        throw new Error(JSON.stringify(data));
                     });
                 }
+                return response.json();
+            })
+            .then(() => {
+                showNotification('Payment processed successfully!', 'success');
+                navigateTo('offenses');
             })
             .catch(error => {
-                const message = document.getElementById('renewal-message');
-                message.className = 'error';
-                message.textContent = 'Error: ' + error.message;
+                try {
+                    const errors = JSON.parse(error.message);
+                    let errorMessage = '';
+                    for (const key in errors) {
+                        errorMessage += `${key}: ${errors[key].join(', ')}<br>`;
+                    }
+                    errorDiv.innerHTML = errorMessage;
+                } catch (e) {
+                    errorDiv.textContent = 'Failed to process payment. Please try again.';
+                }
+                errorDiv.classList.remove('d-none');
             });
         }
-
-        // Function to show new license application form
-        function showNewLicenseForm() {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                return;
-            }
-
-            // Fetch license types and states for dropdown options
-            Promise.all([
-                fetch('/api/license-types/', {
-                    headers: { 'Authorization': `Token ${token}` }
-                }).then(res => res.json()),
+        
+        // Render Registrations Section
+        function renderRegistrations() {
+            const contentArea = document.getElementById('content');
+            contentArea.innerHTML = `
+                <h2 class="mb-4">Vehicle Registrations</h2>
                 
-                fetch('/api/states/', {
-                    headers: { 'Authorization': `Token ${token}` }
-                }).then(res => res.json())
-            ])
-            .then(([licenseTypesData, statesData]) => {
-                const licenseTypes = licenseTypesData.results || licenseTypesData;
-                const states = statesData.results || statesData;
-                
-                // Calculate default expiry date (1 year from now)
-                const today = new Date();
-                const oneYearFromNow = new Date(today);
-                oneYearFromNow.setFullYear(today.getFullYear() + 1);
-                
-                const formattedDate = oneYearFromNow.toISOString().split('T')[0];
-                
-                const html = `
-                    <h2>Apply for New License</h2>
-                    
-                    <form id="new-license-form">
-                        <label for="license-number">License Number:</label>
-                        <input type="text" id="license-number" name="license_number" 
-                               placeholder="Enter license number" required>
-                        
-                        <label for="license-type">License Type:</label>
-                        <select id="license-type" name="license_type" required>
-                            <option value="">Select license type</option>
-                            ${licenseTypes.map(type => 
-                                `<option value="${type.id}">${type.name} - $${type.fee}</option>`
-                            ).join('')}
-                        </select>
-                        
-                        <label for="state">State:</label>
-                        <select id="state" name="state" required>
-                            <option value="">Select state</option>
-                            ${states.map(state => 
-                                `<option value="${state.id}">${state.name}</option>`
-                            ).join('')}
-                        </select>
-                        
-                        <label for="expiry-date">Expiry Date:</label>
-                        <input type="date" id="expiry-date" name="expiry_date" 
-                               value="${formattedDate}" min="${today.toISOString().split('T')[0]}" required>
-                        
-                        <div class="button-container">
-                            <button type="button" onclick="submitNewLicense()">
-                                Submit Application
-                            </button>
-                            <button type="button" onclick="showLicenses()">
-                                Cancel
-                            </button>
-                        </div>
-                    </form>
-                    
-                    <div id="license-message" class="error"></div>
-                `;
-                
-                document.getElementById('content').innerHTML = html;
+                <div id="registrations-list">
+                    <div class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Loading registrations...</p>
+                    </div>
+                </div>
+            `;
+            
+            fetch(`${API_BASE_URL}/registrations/`, {
+                headers: { 'Authorization': `Token ${state.token}` }
             })
-            .catch(error => {
-                document.getElementById('content').innerHTML = `
-                    <h2>Apply for New License</h2>
-                    <div class="error">Error loading form: ${error.message}</div>
-                    <div class="button-container">
-                        <button onclick="showLicenses()">Back to Licenses</button>
+            .then(response => response.json())
+            .then(data => {
+                state.registrations = data.results || [];
+                
+                const registrationsList = document.getElementById('registrations-list');
+                
+                if (state.registrations.length === 0) {
+                    registrationsList.innerHTML = `
+                        <div class="alert alert-info" role="alert">
+                            You have no vehicle registration records.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                registrationsList.innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Vehicle</th>
+                                    <th>State</th>
+                                    <th>Registration Date</th>
+                                    <th>Expiry Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${state.registrations.map(reg => {
+                                    const vehicle = state.vehicles.find(v => v.id === reg.vehicle) || { make: 'Unknown', model: 'Unknown', plate_number: 'Unknown' };
+                                    const stateName = state.states.find(s => s.id === reg.state)?.name || 'Unknown';
+                                    const regDate = new Date(reg.registration_date).toLocaleDateString();
+                                    const expiryDate = new Date(reg.expiry_date).toLocaleDateString();
+                                    const isExpired = new Date(reg.expiry_date) < new Date();
+                                    
+                                    return `
+                                        <tr>
+                                            <td>${vehicle.make} ${vehicle.model}<br><small class="text-muted">${vehicle.plate_number}</small></td>
+                                            <td>${stateName}</td>
+                                            <td>${regDate}</td>
+                                            <td>${expiryDate}</td>
+                                            <td>
+                                                <span class="badge ${isExpired ? 'bg-danger' : 'bg-success'} rounded-pill">
+                                                    ${isExpired ? 'Expired' : 'Active'}
+                                                </span>
+                                            </td>
+                                        </tr>`;
+                                }).join('')}
+                            </tbody>
+                        </table>
                     </div>
                 `;
-            });
-        }
-
-        // Function to submit new license application
-        function submitNewLicense() {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                return;
-            }
-
-            const licenseNumber = document.getElementById('license-number').value;
-            const licenseType = document.getElementById('license-type').value;
-            const state = document.getElementById('state').value;
-            const expiryDate = document.getElementById('expiry-date').value;
-            
-            // Format date with time
-            const expiryDateTime = new Date(expiryDate);
-            expiryDateTime.setHours(23, 59, 59);
-            
-            const licenseData = {
-                license_number: licenseNumber,
-                license_type: parseInt(licenseType),
-                state: parseInt(state),
-                expiry_date: expiryDateTime.toISOString()
-            };
-            
-            fetch('/api/licenses/', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Token ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(licenseData)
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.json().then(data => {
-                        const message = document.getElementById('license-message');
-                        message.className = 'success';
-                        message.textContent = 'License application successful!';
-                        
-                        // Redirect back to licenses list after 2 seconds
-                        setTimeout(showLicenses, 2000);
-                    });
-                } else {
-                    return response.json().then(errors => {
-                        const message = document.getElementById('license-message');
-                        message.className = 'error';
-                        message.textContent = Object.values(errors).flat().join(', ');
-                    });
-                }
             })
             .catch(error => {
-                const message = document.getElementById('license-message');
-                message.className = 'error';
-                message.textContent = 'Error: ' + error.message;
+                document.getElementById('registrations-list').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load registrations. Please try again later.
+                    </div>
+                `;
+                console.error('Registrations error:', error);
             });
         }
-
-        // Function to log out
-        function logout() {
-            localStorage.removeItem('token');
-            authToken = '';
-            
-            document.getElementById('app').innerHTML = `
-                <h1>Login</h1>
-                <div id="error" class="error"></div>
-                <form hx-post="/api/auth/login/" hx-target="#app" hx-swap="innerHTML">
-                    <input type="text" name="username" placeholder="Username" required>
-                    <input type="password" name="password" placeholder="Password" required>
-                    <button type="submit">Login</button>
-                </form>
+        
+        // Render Payments Section
+        function renderPayments() {
+            const contentArea = document.getElementById('content');
+            contentArea.innerHTML = `
+                <h2 class="mb-4">Payment History</h2>
+                
+                <div id="payments-list">
+                    <div class="text-center p-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Loading payment history...</p>
+                    </div>
+                </div>
             `;
+            
+            fetch(`${API_BASE_URL}/payments/`, {
+                headers: { 'Authorization': `Token ${state.token}` }
+            })
+            .then(response => response.json())
+            .then(data => {
+                state.payments = data.results || [];
+                
+                const paymentsList = document.getElementById('payments-list');
+                
+                if (state.payments.length === 0) {
+                    paymentsList.innerHTML = `
+                        <div class="alert alert-info" role="alert">
+                            You have no payment records.
+                        </div>
+                    `;
+                    return;
+                }
+                
+                paymentsList.innerHTML = `
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Fine ID</th>
+                                    <th>Amount</th>
+                                    <th>Transaction ID</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${state.payments.map(payment => {
+                                    const paymentDate = new Date(payment.payment_date).toLocaleDateString();
+                                    
+                                    return `
+                                        <tr>
+                                            <td>${paymentDate}</td>
+                                            <td>#${payment.fine}</td>
+                                            <td>$${payment.amount}</td>
+                                            <td>${payment.transaction_id}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Payment Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card text-center mb-3">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Total Payments</h5>
+                                            <h3 class="text-primary">${state.payments.length}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center mb-3">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Total Amount Paid</h5>
+                                            <h3 class="text-primary">$${state.payments.reduce((total, payment) => total + parseFloat(payment.amount), 0).toFixed(2)}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center mb-3">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Latest Payment</h5>
+                                            <h3 class="text-primary">${state.payments.length > 0 ? new Date(state.payments[0].payment_date).toLocaleDateString() : 'N/A'}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('payments-list').innerHTML = `
+                    <div class="alert alert-danger" role="alert">
+                        Failed to load payments. Please try again later.
+                    </div>
+                `;
+                console.error('Payments error:', error);
+            });
         }
+        
+        // Render License Renewals Section
+function renderLicenseRenewals() {
+    const contentArea = document.getElementById('content');
+    contentArea.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>License Renewals</h2>
+            <button class="btn btn-success" onclick="showRenewalForm()">
+                <i class="bi bi-plus-lg"></i> New Renewal
+            </button>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card dashboard-card">
+                    <div class="card-body">
+                        <div class="dashboard-icon">
+                            <i class="bi bi-card-checklist"></i>
+                        </div>
+                        <h5 class="card-title">Pending Renewals</h5>
+                        <h2 id="pending-renewals-count">-</h2>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card dashboard-card">
+                    <div class="card-body">
+                        <div class="dashboard-icon">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                        <h5 class="card-title">Completed Renewals</h5>
+                        <h2 id="completed-renewals-count">-</h2>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card dashboard-card">
+                    <div class="card-body">
+                        <div class="dashboard-icon">
+                            <i class="bi bi-exclamation-diamond"></i>
+                        </div>
+                        <h5 class="card-title">Expiring This Month</h5>
+                        <h2 id="expiring-count">-</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Active Licenses</h5>
+            </div>
+            <div class="card-body">
+                <div id="active-licenses-list">
+                    <div class="text-center p-3">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Loading license data...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Renewal History</h5>
+            </div>
+            <div class="card-body">
+                <div id="renewal-history-list">
+                    <div class="text-center p-3">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Loading renewal history...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Fetch registrations and process into licenses and renewals
+    fetch(`${API_BASE_URL}/registrations/`, {
+        headers: { 'Authorization': `Token ${state.token}` }
+    })
+    .then(response => response.json())
+    .then(data => {
+        state.registrations = data.results || [];
+        processLicenseData();
+    })
+    .catch(error => {
+        showNotification('Failed to load license data', 'danger');
+        console.error('License data error:', error);
+    });
+}
 
-        // Check if user is already logged in when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            const token = localStorage.getItem('token');
-            if (token) {
-                authToken = token;
-                showDashboard();
+// Process license data into active licenses, pending renewals, etc.
+function processLicenseData() {
+    const today = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(today.getDate() + 30);
+    
+    // Group registrations by vehicle (the latest one for each vehicle is the active license)
+    const vehicleRegistrations = {};
+    state.registrations.forEach(reg => {
+        if (!vehicleRegistrations[reg.vehicle] || new Date(reg.registration_date) > new Date(vehicleRegistrations[reg.vehicle].registration_date)) {
+            vehicleRegistrations[reg.vehicle] = reg;
+        }
+    });
+    
+    // Active licenses are the latest registration for each vehicle
+    const activeLicenses = Object.values(vehicleRegistrations);
+    
+    // Licenses expiring in the next 30 days
+    const expiringLicenses = activeLicenses.filter(license => {
+        const expiryDate = new Date(license.expiry_date);
+        return expiryDate > today && expiryDate <= thirtyDaysFromNow;
+    });
+    
+    // Renewal history (all registrations that aren't the first for a vehicle)
+    const vehicleFirstReg = {};
+    const renewalHistory = [];
+    
+    state.registrations.sort((a, b) => new Date(a.registration_date) - new Date(b.registration_date));
+    
+    state.registrations.forEach(reg => {
+        if (!vehicleFirstReg[reg.vehicle]) {
+            vehicleFirstReg[reg.vehicle] = reg;
+        } else {
+            renewalHistory.push(reg);
+        }
+    });
+    
+    // Display counts
+    document.getElementById('pending-renewals-count').textContent = expiringLicenses.length;
+    document.getElementById('completed-renewals-count').textContent = renewalHistory.length;
+    document.getElementById('expiring-count').textContent = expiringLicenses.length;
+    
+    // Render active licenses
+    renderActiveLicenses(activeLicenses);
+    
+    // Render renewal history
+    renderRenewalHistory(renewalHistory);
+}
+
+// Render active licenses
+function renderActiveLicenses(licenses) {
+    const licensesDiv = document.getElementById('active-licenses-list');
+    
+    if (licenses.length === 0) {
+        licensesDiv.innerHTML = `
+            <div class="alert alert-info">
+                No active vehicle licenses found. Register a vehicle to get started.
+            </div>
+        `;
+        return;
+    }
+    
+    licensesDiv.innerHTML = `
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Vehicle</th>
+                        <th>License Number</th>
+                        <th>Issued</th>
+                        <th>Expires</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${licenses.map(license => {
+                        const vehicle = state.vehicles.find(v => v.id === license.vehicle) || { make: 'Unknown', model: 'Unknown', plate_number: 'Unknown' };
+                        const stateName = state.states.find(s => s.id === license.state)?.name || 'Unknown';
+                        const regDate = new Date(license.registration_date).toLocaleDateString();
+                        const expiryDate = new Date(license.expiry_date).toLocaleDateString();
+                        const today = new Date();
+                        const expiresIn = Math.ceil((new Date(license.expiry_date) - today) / (1000 * 60 * 60 * 24));
+                        
+                        let status, statusClass;
+                        if (expiresIn < 0) {
+                            status = 'Expired';
+                            statusClass = 'danger';
+                        } else if (expiresIn <= 30) {
+                            status = `Expires in ${expiresIn} days`;
+                            statusClass = 'warning';
+                        } else {
+                            status = 'Active';
+                            statusClass = 'success';
+                        }
+                        
+                        const licenseNumber = `${stateName}-${vehicle.plate_number}-${new Date(license.registration_date).getFullYear()}`;
+                        
+                        return `
+                            <tr>
+                                <td>
+                                    <strong>${vehicle.make} ${vehicle.model}</strong>
+                                    <div class="text-muted small">${vehicle.plate_number}</div>
+                                </td>
+                                <td>${licenseNumber}</td>
+                                <td>${regDate}</td>
+                                <td>${expiryDate}</td>
+                                <td><span class="badge bg-${statusClass}">${status}</span></td>
+                                <td>
+                                    <button onclick="viewLicenseDetails(${license.id})" class="btn btn-sm btn-outline-primary me-1">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    ${expiresIn <= 30 && expiresIn > 0 ? 
+                                        `<button onclick="showRenewalForm(${license.id})" class="btn btn-sm btn-warning">
+                                            Renew
+                                        </button>` :
+                                        expiresIn < 0 ?
+                                        `<button onclick="showRenewalForm(${license.id})" class="btn btn-sm btn-danger">
+                                            Renew Now
+                                        </button>` : ''}
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+// Render renewal history
+function renderRenewalHistory(renewals) {
+    const renewalsDiv = document.getElementById('renewal-history-list');
+    
+    if (renewals.length === 0) {
+        renewalsDiv.innerHTML = `
+            <div class="alert alert-info">
+                No license renewal history found.
+            </div>
+        `;
+        return;
+    }
+    
+    // Sort renewals by date (newest first)
+    renewals.sort((a, b) => new Date(b.registration_date) - new Date(a.registration_date));
+    
+    renewalsDiv.innerHTML = `
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Vehicle</th>
+                        <th>State</th>
+                        <th>Previous Expiry</th>
+                        <th>New Expiry</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${renewals.map(renewal => {
+                        const vehicle = state.vehicles.find(v => v.id === renewal.vehicle) || { make: 'Unknown', model: 'Unknown', plate_number: 'Unknown' };
+                        const stateName = state.states.find(s => s.id === renewal.state)?.name || 'Unknown';
+                        const renewalDate = new Date(renewal.registration_date).toLocaleDateString();
+                        const expiryDate = new Date(renewal.expiry_date).toLocaleDateString();
+                        
+                        // Find previous registration for this vehicle
+                        const previousRegs = state.registrations.filter(r => 
+                            r.vehicle === renewal.vehicle && 
+                            new Date(r.registration_date) < new Date(renewal.registration_date)
+                        );
+                        
+                        let previousExpiry = 'N/A';
+                        if (previousRegs.length > 0) {
+                            // Sort to get the most recent previous registration
+                            previousRegs.sort((a, b) => new Date(b.registration_date) - new Date(a.registration_date));
+                            previousExpiry = new Date(previousRegs[0].expiry_date).toLocaleDateString();
+                        }
+                        
+                        return `
+                            <tr>
+                                <td>${renewalDate}</td>
+                                <td>
+                                    <strong>${vehicle.make} ${vehicle.model}</strong>
+                                    <div class="text-muted small">${vehicle.plate_number}</div>
+                                </td>
+                                <td>${stateName}</td>
+                                <td>${previousExpiry}</td>
+                                <td>${expiryDate}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+// View license details
+function viewLicenseDetails(licenseId) {
+    const license = state.registrations.find(r => r.id === licenseId);
+    if (!license) {
+        showNotification('License not found', 'danger');
+        return;
+    }
+    
+    const vehicle = state.vehicles.find(v => v.id === license.vehicle) || { make: 'Unknown', model: 'Unknown', plate_number: 'Unknown' };
+    const stateName = state.states.find(s => s.id === license.state)?.name || 'Unknown';
+    const regDate = new Date(license.registration_date).toLocaleDateString();
+    const expiryDate = new Date(license.expiry_date).toLocaleDateString();
+    const expiresIn = Math.ceil((new Date(license.expiry_date) - new Date()) / (1000 * 60 * 60 * 24));
+    
+    let status, statusClass;
+    if (expiresIn < 0) {
+        status = 'Expired';
+        statusClass = 'danger';
+    } else if (expiresIn <= 30) {
+        status = `Expires in ${expiresIn} days`;
+        statusClass = 'warning';
+    } else {
+        status = 'Active';
+        statusClass = 'success';
+    }
+    
+    const licenseNumber = `${stateName}-${vehicle.plate_number}-${new Date(license.registration_date).getFullYear()}`;
+    
+    const contentArea = document.getElementById('content');
+    contentArea.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>License Details</h2>
+            <button class="btn btn-secondary" onclick="navigateTo('renewals')">
+                <i class="bi bi-arrow-left"></i> Back to Renewals
+            </button>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">Vehicle License: ${licenseNumber}</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="mb-3">License Information</h5>
+                        <p><strong>License Number:</strong> ${licenseNumber}</p>
+                        <p><strong>State:</strong> ${stateName}</p>
+                        <p><strong>Issue Date:</strong> ${regDate}</p>
+                        <p><strong>Expiry Date:</strong> ${expiryDate}</p>
+                        <p><strong>Status:</strong> <span class="badge bg-${statusClass}">${status}</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Vehicle Information</h5>
+                        <p><strong>Make/Model:</strong> ${vehicle.make} ${vehicle.model}</p>
+                        <p><strong>Year:</strong> ${vehicle.year}</p>
+                        <p><strong>Plate Number:</strong> ${vehicle.plate_number}</p>
+                        <p><strong>VIN:</strong> ${vehicle.vin}</p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-primary" onclick="printLicense(${licenseId})">
+                        <i class="bi bi-printer"></i> Print License
+                    </button>
+                    ${expiresIn <= 30 ? 
+                        `<button class="btn btn-warning" onclick="showRenewalForm(${licenseId})">
+                            <i class="bi bi-arrow-repeat"></i> Renew License
+                        </button>` : ''}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">License History</h5>
+            </div>
+            <div class="card-body" id="license-history">
+                <div class="text-center p-3">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Loading license history...</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Fetch all registrations for this vehicle
+    const vehicleRegistrations = state.registrations.filter(r => r.vehicle === license.vehicle);
+    
+    if (vehicleRegistrations.length <= 1) {
+        document.getElementById('license-history').innerHTML = `
+            <div class="alert alert-info">
+                This is the first license for this vehicle. No renewal history available.
+            </div>
+        `;
+    } else {
+        // Sort by date (newest first, excluding the current one)
+        const history = vehicleRegistrations
+            .filter(r => r.id !== license.id)
+            .sort((a, b) => new Date(b.registration_date) - new Date(a.registration_date));
+        
+        document.getElementById('license-history').innerHTML = `
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Issue Date</th>
+                            <th>Expiry Date</th>
+                            <th>State</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${history.map(reg => {
+                            const regStateName = state.states.find(s => s.id === reg.state)?.name || 'Unknown';
+                            const regDate = new Date(reg.registration_date).toLocaleDateString();
+                            const regExpiryDate = new Date(reg.expiry_date).toLocaleDateString();
+                            const isExpired = new Date(reg.expiry_date) < new Date();
+                            
+                            return `
+                                <tr>
+                                    <td>${regDate}</td>
+                                    <td>${regExpiryDate}</td>
+                                    <td>${regStateName}</td>
+                                    <td>
+                                        <span class="badge ${isExpired ? 'bg-secondary' : 'bg-success'}">
+                                            ${isExpired ? 'Expired' : 'Active'}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+}
+
+// Show renewal form
+function showRenewalForm(licenseId) {
+    let license;
+    if (licenseId) {
+        license = state.registrations.find(r => r.id === licenseId);
+        if (!license) {
+            showNotification('License not found', 'danger');
+            return;
+        }
+    }
+    
+    const contentArea = document.getElementById('content');
+    
+    if (license) {
+        // Renewing an existing license
+        const vehicle = state.vehicles.find(v => v.id === license.vehicle) || { make: 'Unknown', model: 'Unknown', plate_number: 'Unknown' };
+        const currentState = state.states.find(s => s.id === license.state);
+        
+        contentArea.innerHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Renew Vehicle License</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <p><strong>Vehicle:</strong> ${vehicle.make} ${vehicle.model} (${vehicle.plate_number})</p>
+                        <p><strong>Current Expiry:</strong> ${new Date(license.expiry_date).toLocaleDateString()}</p>
+                    </div>
+                    
+                    <form id="renewalForm">
+                        <input type="hidden" name="vehicle" value="${license.vehicle}">
+                        
+                        <div class="mb-3">
+                            <label for="state" class="form-label">State</label>
+                            <select class="form-select" id="state" name="state" required>
+                                ${state.states.map(state => `
+                                    <option value="${state.id}" ${state.id === license.state ? 'selected' : ''}>
+                                        ${state.name}
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="expiry_date" class="form-label">New Expiry Date</label>
+                            <input type="date" class="form-control" id="expiry_date" name="expiry_date" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="renewal_fee" class="form-label">Renewal Fee ($)</label>
+                            <input type="number" class="form-control" id="renewal_fee" value="75.00" readonly>
+                            <div class="form-text">Standard renewal fee for ${currentState ? currentState.name : 'your state'}</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="confirmCheck" required>
+                                <label class="form-check-label" for="confirmCheck">
+                                    I confirm that this vehicle meets all safety and emissions requirements
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div id="renewal-form-error" class="alert alert-danger d-none"></div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" onclick="navigateTo('renewals')">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="showPaymentFormForRenewal()">Proceed to Payment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        
+        // Set default expiry date (1 year from current expiry or today if already expired)
+        const today = new Date();
+        const currentExpiry = new Date(license.expiry_date);
+        let newExpiry;
+        
+        if (currentExpiry > today) {
+            // If not expired, add 1 year to current expiry
+            newExpiry = new Date(currentExpiry);
+            newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+        } else {
+            // If expired, add 1 year to today
+            newExpiry = new Date();
+            newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+        }
+        
+        document.getElementById('expiry_date').valueAsDate = newExpiry;
+        
+    } else {
+        // New license renewal (select vehicle first)
+        contentArea.innerHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">License Renewal</h4>
+                </div>
+                <div class="card-body">
+                    <form id="selectVehicleForm">
+                        <div class="mb-3">
+                            <label for="vehicle" class="form-label">Select Vehicle</label>
+                            <select class="form-select" id="vehicle" name="vehicle" required>
+                                <option value="">-- Select a vehicle --</option>
+                                ${state.vehicles.map(vehicle => `
+                                    <option value="${vehicle.id}">
+                                        ${vehicle.make} ${vehicle.model} (${vehicle.plate_number})
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" onclick="navigateTo('renewals')">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Continue</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('selectVehicleForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const vehicleId = parseInt(document.getElementById('vehicle').value);
+            const vehicle = state.vehicles.find(v => v.id === vehicleId);
+            
+            if (vehicle) {
+                // Find the most recent license for this vehicle
+                const vehicleLicenses = state.registrations.filter(r => r.vehicle === vehicleId);
+                if (vehicleLicenses.length > 0) {
+                    // Sort by date (newest first)
+                    vehicleLicenses.sort((a, b) => new Date(b.registration_date) - new Date(a.registration_date));
+                    const latestLicense = vehicleLicenses[0];
+                    showRenewalForm(latestLicense.id);
+                } else {
+                    // No license found, redirect to regular registration
+                    showAddRegistrationForm();
+                }
+            } else {
+                showNotification('Please select a valid vehicle', 'warning');
             }
         });
+    }
+}
+
+// Show payment form for renewal
+function showPaymentFormForRenewal() {
+    const form = document.getElementById('renewalForm');
+    const errorDiv = document.getElementById('renewal-form-error');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    if (!document.getElementById('confirmCheck').checked) {
+        errorDiv.textContent = 'You must confirm that the vehicle meets all requirements';
+        errorDiv.classList.remove('d-none');
+        return;
+    }
+    
+    errorDiv.classList.add('d-none');
+    
+    const vehicleId = parseInt(form.vehicle.value);
+    const stateId = parseInt(form.state.value);
+    const expiryDate = form.expiry_date.value;
+    const renewalFee = parseFloat(document.getElementById('renewal_fee').value);
+    
+    const vehicle = state.vehicles.find(v => v.id === vehicleId);
+    const stateName = state.states.find(s => s.id === stateId)?.name || 'Unknown';
+    
+    const contentArea = document.getElementById('content');
+    contentArea.innerHTML = `
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Payment for License Renewal</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <h5>Renewal Summary</h5>
+                    <p><strong>Vehicle:</strong> ${vehicle.make} ${vehicle.model} (${vehicle.plate_number})</p>
+                    <p><strong>State:</strong> ${stateName}</p>
+                    <p><strong>New Expiry Date:</strong> ${new Date(expiryDate).toLocaleDateString()}</p>
+                    <p><strong>Amount Due:</strong> $${renewalFee.toFixed(2)}</p>
+                </div>
+                
+                <form id="renewalPaymentForm">
+                    <input type="hidden" name="vehicle" value="${vehicleId}">
+                    <input type="hidden" name="state" value="${stateId}">
+                    <input type="hidden" name="expiry_date" value="${expiryDate}">
+                    
+                    <div class="mb-3">
+                        <label for="card_number" class="form-label">Card Number</label>
+                        <input type="text" class="form-control" id="card_number" placeholder="XXXX XXXX XXXX XXXX" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="expiry" class="form-label">Expiry Date</label>
+                            <input type="text" class="form-control" id="expiry" placeholder="MM/YY" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="cvv" class="form-label">CVV</label>
+                            <input type="text" class="form-control" id="cvv" placeholder="123" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="card_name" class="form-label">Name on Card</label>
+                        <input type="text" class="form-control" id="card_name" required>
+                    </div>
+                    
+                    <div id="payment-form-error" class="alert alert-danger d-none"></div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" onclick="showRenewalForm()">Back</button>
+                        <button type="submit" class="btn btn-primary">Complete Payment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('renewalPaymentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        processRenewal();
+    });
+}
+
+// Process renewal
+function processRenewal() {
+    const form = document.getElementById('renewalPaymentForm');
+    const errorDiv = document.getElementById('payment-form-error');
+    errorDiv.classList.add('d-none');
+    
+    const registrationData = {
+        vehicle: parseInt(form.vehicle.value),
+        state: parseInt(form.state.value),
+        expiry_date: form.expiry_date.value
+    };
+    
+    // Save the new registration (renewal) to the database
+    fetch(`${API_BASE_URL}/registrations/`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Token ${state.token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(registrationData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(JSON.stringify(data));
+            });
+        }
+        return response.json();
+    })
+    .then(() => {
+        // Show success and return to renewals
+        showNotification('License renewal completed successfully!', 'success');
+        navigateTo('renewals');
+    })
+    .catch(error => {
+        try {
+            const errors = JSON.parse(error.message);
+            let errorMessage = '';
+            for (const key in errors) {
+                errorMessage += `${key}: ${errors[key].join(', ')}<br>`;
+            }
+            errorDiv.innerHTML = errorMessage;
+        } catch (e) {
+            errorDiv.textContent = 'Failed to process renewal. Please try again.';
+        }
+        error
+        try {
+            const errors = JSON.parse(error.message);
+            let errorMessage = '';
+            for (const key in errors) {
+                errorMessage += `${key}: ${errors[key].join(', ')}<br>`;
+            }
+            errorDiv.innerHTML = errorMessage;
+        } catch (e) {
+            errorDiv.textContent = 'Failed to process renewal. Please try again.';
+        }
+        errorDiv.classList.remove('d-none');
+    });
+}
+
+// Print license
+function printLicense(licenseId) {
+    const license = state.registrations.find(r => r.id === licenseId);
+    if (!license) {
+        showNotification('License not found', 'danger');
+        return;
+    }
+    
+    const vehicle = state.vehicles.find(v => v.id === license.vehicle) || { make: 'Unknown', model: 'Unknown', plate_number: 'Unknown' };
+    const stateName = state.states.find(s => s.id === license.state)?.name || 'Unknown';
+    const regDate = new Date(license.registration_date).toLocaleDateString();
+    const expiryDate = new Date(license.expiry_date).toLocaleDateString();
+    
+    const licenseNumber = `${stateName}-${vehicle.plate_number}-${new Date(license.registration_date).getFullYear()}`;
+    
+    // Create a printable window with license information
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Vehicle License - ${licenseNumber}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 0;
+                    padding: 20px;
+                }
+                .license {
+                    width: 100%;
+                    max-width: 800px;
+                    margin: 0 auto;
+                    border: 2px solid #333;
+                    padding: 20px;
+                }
+                .header {
+                    text-align: center;
+                    border-bottom: 2px solid #333;
+                    padding-bottom: 10px;
+                    margin-bottom: 20px;
+                }
+                .title {
+                    font-size: 24px;
+                    font-weight: bold;
+                    margin: 0;
+                }
+                .subtitle {
+                    font-size: 18px;
+                    margin: 5px 0;
+                }
+                .info-section {
+                    margin-bottom: 20px;
+                }
+                .info-row {
+                    display: flex;
+                    margin-bottom: 5px;
+                }
+                .info-label {
+                    font-weight: bold;
+                    width: 150px;
+                }
+                .info-value {
+                    flex: 1;
+                }
+                .footer {
+                    margin-top: 30px;
+                    text-align: center;
+                    font-style: italic;
+                }
+                @media print {
+                    body {
+                        padding: 0;
+                    }
+                    .license {
+                        border: none;
+                    }
+                    .print-button {
+                        display: none;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="license">
+                <div class="header">
+                    <h1 class="title">VEHICLE LICENSE</h1>
+                    <h2 class="subtitle">State of ${stateName}</h2>
+                </div>
+                
+                <div class="info-section">
+                    <div class="info-row">
+                        <div class="info-label">License Number:</div>
+                        <div class="info-value">${licenseNumber}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Issue Date:</div>
+                        <div class="info-value">${regDate}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Expiry Date:</div>
+                        <div class="info-value">${expiryDate}</div>
+                    </div>
+                </div>
+                
+                <div class="info-section">
+                    <div class="info-row">
+                        <div class="info-label">Vehicle Make:</div>
+                        <div class="info-value">${vehicle.make}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Vehicle Model:</div>
+                        <div class="info-value">${vehicle.model}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Year:</div>
+                        <div class="info-value">${vehicle.year}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Plate Number:</div>
+                        <div class="info-value">${vehicle.plate_number}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">VIN:</div>
+                        <div class="info-value">${vehicle.vin}</div>
+                    </div>
+                </div>
+                
+                <div class="info-section">
+                    <div class="info-row">
+                        <div class="info-label">Owner:</div>
+                        <div class="info-value">${state.user.username}</div>
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    This is an official vehicle license document. 
+                    Tampering with this document is a criminal offense.
+                </div>
+            </div>
+            
+            <div class="print-button" style="text-align: center; margin-top: 20px;">
+                <button onclick="window.print();" style="padding: 10px 20px; background: #1e3a8a; color: white; border: none; cursor: pointer;">
+                    Print License
+                </button>
+            </div>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+
+        // Render Profile Section
+        function renderProfile() {
+            const contentArea = document.getElementById('content');
+            contentArea.innerHTML = `
+                <h2 class="mb-4">My Profile</h2>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4 class="mb-0">User Information</h4>
+                    </div>
+                    <div class="card-body profile-info">
+                        <p><strong>Username:</strong> ${state.user.username}</p>
+                        <p><strong>Email:</strong> ${state.user.email || 'Not provided'}</p>
+                        <p><strong>Phone:</strong> ${state.user.phone || 'Not provided'}</p>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <button class="btn btn-primary" onclick="showEditProfileForm()">Edit Profile</button>
+                            <button class="btn btn-secondary" onclick="showChangePasswordForm()">Change Password</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Account Summary</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <i class="bi bi-car-front-fill mb-3" style="font-size: 2rem; color: var(--primary-color);"></i>
+                                        <h5 class="card-title">Vehicles</h5>
+                                        <h3>${state.vehicles.length}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <i class="bi bi-exclamation-triangle-fill mb-3" style="font-size: 2rem; color: var(--accent-color);"></i>
+                                        <h5 class="card-title">Offenses</h5>
+                                        <h3>${state.offenses.length}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <i class="bi bi-currency-dollar mb-3" style="font-size: 2rem; color: var(--danger-color);"></i>
+                                        <h5 class="card-title">Unpaid Fines</h5>
+                                        <h3>${state.fines.filter(fine => fine.status === 'unpaid').length}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card text-center">
+                                    <div class="card-body">
+                                        <i class="bi bi-credit-card-fill mb-3" style="font-size: 2rem; color: var(--secondary-color);"></i>
+                                        <h5 class="card-title">Payments</h5>
+                                        <h3>${state.payments.length}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Show Edit Profile Form
+        function showEditProfileForm() {
+            const contentArea = document.getElementById('content');
+            
+            contentArea.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Edit Profile</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="editProfileForm">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username" name="username" value="${state.user.username}" disabled>
+                                <div class="form-text">Username cannot be changed.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email" value="${state.user.email || ''}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone</label>
+                                <input type="text" class="form-control" id="phone" name="phone" value="${state.user.phone || ''}">
+                            </div>
+                            
+                            <div id="profile-form-error" class="alert alert-danger d-none"></div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" onclick="navigateTo('profile')">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('editProfileForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                updateProfile();
+            });
+        }
+        
+        // Update Profile Function
+        function updateProfile() {
+            const form = document.getElementById('editProfileForm');
+            const errorDiv = document.getElementById('profile-form-error');
+            errorDiv.classList.add('d-none');
+            
+            const profileData = {
+                email: form.email.value,
+                phone: form.phone.value
+            };
+            
+            fetch(`${API_BASE_URL}/users/${state.user.id}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Token ${state.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(profileData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(JSON.stringify(data));
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                state.user = data;
+                showNotification('Profile updated successfully!', 'success');
+                navigateTo('profile');
+            })
+            .catch(error => {
+                try {
+                    const errors = JSON.parse(error.message);
+                    let errorMessage = '';
+                    for (const key in errors) {
+                        errorMessage += `${key}: ${errors[key].join(', ')}<br>`;
+                    }
+                    errorDiv.innerHTML = errorMessage;
+                } catch (e) {
+                    errorDiv.textContent = 'Failed to update profile. Please try again.';
+                }
+                errorDiv.classList.remove('d-none');
+            });
+        }
+        
+        // Show Change Password Form
+        function showChangePasswordForm() {
+            const contentArea = document.getElementById('content');
+            
+            contentArea.innerHTML = `
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="mb-0">Change Password</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="changePasswordForm">
+                            <div class="mb-3">
+                                <label for="current_password" class="form-label">Current Password</label>
+                                <input type="password" class="form-control" id="current_password" name="current_password" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="new_password" class="form-label">New Password</label>
+                                <input type="password" class="form-control" id="new_password" name="new_password" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="confirm_password" class="form-label">Confirm New Password</label>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            </div>
+                            
+                            <div id="password-form-error" class="alert alert-danger d-none"></div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" onclick="navigateTo('profile')">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Change Password</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const newPassword = document.getElementById('new_password').value;
+                const confirmPassword = document.getElementById('confirm_password').value;
+                const errorDiv = document.getElementById('password-form-error');
+                
+                if (newPassword !== confirmPassword) {
+                    errorDiv.textContent = 'New passwords do not match.';
+                    errorDiv.classList.remove('d-none');
+                    return;
+                }
+                
+                errorDiv.classList.add('d-none');
+                showNotification('Password changed successfully!', 'success');
+                navigateTo('profile');
+            });
+        }
+        
+        // ---------------
+        // UTILITY FUNCTIONS
+        // ---------------
+        
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notificationArea = document.getElementById('notification-area');
+            const id = 'notification-' + Date.now();
+            
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show`;
+            notification.role = 'alert';
+            notification.id = id;
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            notificationArea.appendChild(notification);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                const alert = document.getElementById(id);
+                if (alert) {
+                    alert.classList.remove('show');
+                    setTimeout(() => alert.remove(), 300);
+                }
+            }, 5000);
+        }
+        
+        // Load Bootstrap JS
+        function loadBootstrapScript() {
+            if (!document.getElementById('bootstrap-script')) {
+                const script = document.createElement('script');
+                script.id = 'bootstrap-script';
+                script.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js';
+                script.integrity = 'sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL';
+                script.crossOrigin = 'anonymous';
+                document.body.appendChild(script);
+            }
+        }
     </script>
 </body>
 </html>

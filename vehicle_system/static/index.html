@@ -436,6 +436,10 @@
                                 <li class="nav-item">
                                     <a class="nav-link ${state.currentSection === 'payments' ? 'active' : ''}" href="#" onclick="navigateTo('payments')">Payments</a>
                                 </li>
+                                <li class="nav-item">
+                                    <a class="nav-link ${state.currentSection === 'renewals' ? 'active' : ''}" href="#" onclick="navigateTo('renewals')">License Renewals</a>
+                                </li>
+                
                             </ul>
                             <ul class="navbar-nav">
                                 <li class="nav-item dropdown">
@@ -511,6 +515,9 @@
                     break;
                 case 'profile':
                     renderProfile();
+                    break;
+                case 'renewals':
+                    renderLicenseRenewals();
                     break;
                 default:
                     renderDashboard();
@@ -612,6 +619,29 @@
                                 </div>
                             </div>
                         </div>
+                        
+
+                        <div class="col-md-3 mb-4">
+                            <div class="card dashboard-card" onclick="navigateTo('renewals')">
+                                <div class="card-body">
+                                    <div class="dashboard-icon">
+                                        <i class="bi bi-card-checklist"></i>
+                                    </div>
+                                    <h5 class="card-title">License Renewals</h5>
+                                    <h2 class="mb-0">
+                                        ${state.registrations ? state.registrations.filter(r => {
+                                            const expiryDate = new Date(r.expiry_date);
+                                            const today = new Date();
+                                            const thirtyDaysFromNow = new Date();
+                                            thirtyDaysFromNow.setDate(today.getDate() + 30);
+                                            return expiryDate > today && expiryDate <= thirtyDaysFromNow;
+                                        }).length : '0'}
+                                    </h2>
+                                    <p class="text-muted">Renewals due soon</p>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                     
                     <div class="row mt-4">
@@ -1560,9 +1590,7 @@
                                                     ${isExpired ? 'Expired' : 'Active'}
                                                 </span>
                                             </td>
-                                        </tr>
-
-                                        `;
+                                        </tr>`;
                                 }).join('')}
                             </tbody>
                         </table>
@@ -1684,6 +1712,876 @@
             });
         }
         
+        // Render License Renewals Section
+function renderLicenseRenewals() {
+    const contentArea = document.getElementById('content');
+    contentArea.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>License Renewals</h2>
+            <button class="btn btn-success" onclick="showRenewalForm()">
+                <i class="bi bi-plus-lg"></i> New Renewal
+            </button>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card dashboard-card">
+                    <div class="card-body">
+                        <div class="dashboard-icon">
+                            <i class="bi bi-card-checklist"></i>
+                        </div>
+                        <h5 class="card-title">Pending Renewals</h5>
+                        <h2 id="pending-renewals-count">-</h2>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card dashboard-card">
+                    <div class="card-body">
+                        <div class="dashboard-icon">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                        <h5 class="card-title">Completed Renewals</h5>
+                        <h2 id="completed-renewals-count">-</h2>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card dashboard-card">
+                    <div class="card-body">
+                        <div class="dashboard-icon">
+                            <i class="bi bi-exclamation-diamond"></i>
+                        </div>
+                        <h5 class="card-title">Expiring This Month</h5>
+                        <h2 id="expiring-count">-</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Active Licenses</h5>
+            </div>
+            <div class="card-body">
+                <div id="active-licenses-list">
+                    <div class="text-center p-3">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Loading license data...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Renewal History</h5>
+            </div>
+            <div class="card-body">
+                <div id="renewal-history-list">
+                    <div class="text-center p-3">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p>Loading renewal history...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Fetch registrations and process into licenses and renewals
+    fetch(`${API_BASE_URL}/registrations/`, {
+        headers: { 'Authorization': `Token ${state.token}` }
+    })
+    .then(response => response.json())
+    .then(data => {
+        state.registrations = data.results || [];
+        processLicenseData();
+    })
+    .catch(error => {
+        showNotification('Failed to load license data', 'danger');
+        console.error('License data error:', error);
+    });
+}
+
+// Process license data into active licenses, pending renewals, etc.
+function processLicenseData() {
+    const today = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(today.getDate() + 30);
+    
+    // Group registrations by vehicle (the latest one for each vehicle is the active license)
+    const vehicleRegistrations = {};
+    state.registrations.forEach(reg => {
+        if (!vehicleRegistrations[reg.vehicle] || new Date(reg.registration_date) > new Date(vehicleRegistrations[reg.vehicle].registration_date)) {
+            vehicleRegistrations[reg.vehicle] = reg;
+        }
+    });
+    
+    // Active licenses are the latest registration for each vehicle
+    const activeLicenses = Object.values(vehicleRegistrations);
+    
+    // Licenses expiring in the next 30 days
+    const expiringLicenses = activeLicenses.filter(license => {
+        const expiryDate = new Date(license.expiry_date);
+        return expiryDate > today && expiryDate <= thirtyDaysFromNow;
+    });
+    
+    // Renewal history (all registrations that aren't the first for a vehicle)
+    const vehicleFirstReg = {};
+    const renewalHistory = [];
+    
+    state.registrations.sort((a, b) => new Date(a.registration_date) - new Date(b.registration_date));
+    
+    state.registrations.forEach(reg => {
+        if (!vehicleFirstReg[reg.vehicle]) {
+            vehicleFirstReg[reg.vehicle] = reg;
+        } else {
+            renewalHistory.push(reg);
+        }
+    });
+    
+    // Display counts
+    document.getElementById('pending-renewals-count').textContent = expiringLicenses.length;
+    document.getElementById('completed-renewals-count').textContent = renewalHistory.length;
+    document.getElementById('expiring-count').textContent = expiringLicenses.length;
+    
+    // Render active licenses
+    renderActiveLicenses(activeLicenses);
+    
+    // Render renewal history
+    renderRenewalHistory(renewalHistory);
+}
+
+// Render active licenses
+function renderActiveLicenses(licenses) {
+    const licensesDiv = document.getElementById('active-licenses-list');
+    
+    if (licenses.length === 0) {
+        licensesDiv.innerHTML = `
+            <div class="alert alert-info">
+                No active vehicle licenses found. Register a vehicle to get started.
+            </div>
+        `;
+        return;
+    }
+    
+    licensesDiv.innerHTML = `
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Vehicle</th>
+                        <th>License Number</th>
+                        <th>Issued</th>
+                        <th>Expires</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${licenses.map(license => {
+                        const vehicle = state.vehicles.find(v => v.id === license.vehicle) || { make: 'Unknown', model: 'Unknown', plate_number: 'Unknown' };
+                        const stateName = state.states.find(s => s.id === license.state)?.name || 'Unknown';
+                        const regDate = new Date(license.registration_date).toLocaleDateString();
+                        const expiryDate = new Date(license.expiry_date).toLocaleDateString();
+                        const today = new Date();
+                        const expiresIn = Math.ceil((new Date(license.expiry_date) - today) / (1000 * 60 * 60 * 24));
+                        
+                        let status, statusClass;
+                        if (expiresIn < 0) {
+                            status = 'Expired';
+                            statusClass = 'danger';
+                        } else if (expiresIn <= 30) {
+                            status = `Expires in ${expiresIn} days`;
+                            statusClass = 'warning';
+                        } else {
+                            status = 'Active';
+                            statusClass = 'success';
+                        }
+                        
+                        const licenseNumber = `${stateName}-${vehicle.plate_number}-${new Date(license.registration_date).getFullYear()}`;
+                        
+                        return `
+                            <tr>
+                                <td>
+                                    <strong>${vehicle.make} ${vehicle.model}</strong>
+                                    <div class="text-muted small">${vehicle.plate_number}</div>
+                                </td>
+                                <td>${licenseNumber}</td>
+                                <td>${regDate}</td>
+                                <td>${expiryDate}</td>
+                                <td><span class="badge bg-${statusClass}">${status}</span></td>
+                                <td>
+                                    <button onclick="viewLicenseDetails(${license.id})" class="btn btn-sm btn-outline-primary me-1">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    ${expiresIn <= 30 && expiresIn > 0 ? 
+                                        `<button onclick="showRenewalForm(${license.id})" class="btn btn-sm btn-warning">
+                                            Renew
+                                        </button>` :
+                                        expiresIn < 0 ?
+                                        `<button onclick="showRenewalForm(${license.id})" class="btn btn-sm btn-danger">
+                                            Renew Now
+                                        </button>` : ''}
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+// Render renewal history
+function renderRenewalHistory(renewals) {
+    const renewalsDiv = document.getElementById('renewal-history-list');
+    
+    if (renewals.length === 0) {
+        renewalsDiv.innerHTML = `
+            <div class="alert alert-info">
+                No license renewal history found.
+            </div>
+        `;
+        return;
+    }
+    
+    // Sort renewals by date (newest first)
+    renewals.sort((a, b) => new Date(b.registration_date) - new Date(a.registration_date));
+    
+    renewalsDiv.innerHTML = `
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Vehicle</th>
+                        <th>State</th>
+                        <th>Previous Expiry</th>
+                        <th>New Expiry</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${renewals.map(renewal => {
+                        const vehicle = state.vehicles.find(v => v.id === renewal.vehicle) || { make: 'Unknown', model: 'Unknown', plate_number: 'Unknown' };
+                        const stateName = state.states.find(s => s.id === renewal.state)?.name || 'Unknown';
+                        const renewalDate = new Date(renewal.registration_date).toLocaleDateString();
+                        const expiryDate = new Date(renewal.expiry_date).toLocaleDateString();
+                        
+                        // Find previous registration for this vehicle
+                        const previousRegs = state.registrations.filter(r => 
+                            r.vehicle === renewal.vehicle && 
+                            new Date(r.registration_date) < new Date(renewal.registration_date)
+                        );
+                        
+                        let previousExpiry = 'N/A';
+                        if (previousRegs.length > 0) {
+                            // Sort to get the most recent previous registration
+                            previousRegs.sort((a, b) => new Date(b.registration_date) - new Date(a.registration_date));
+                            previousExpiry = new Date(previousRegs[0].expiry_date).toLocaleDateString();
+                        }
+                        
+                        return `
+                            <tr>
+                                <td>${renewalDate}</td>
+                                <td>
+                                    <strong>${vehicle.make} ${vehicle.model}</strong>
+                                    <div class="text-muted small">${vehicle.plate_number}</div>
+                                </td>
+                                <td>${stateName}</td>
+                                <td>${previousExpiry}</td>
+                                <td>${expiryDate}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+// View license details
+function viewLicenseDetails(licenseId) {
+    const license = state.registrations.find(r => r.id === licenseId);
+    if (!license) {
+        showNotification('License not found', 'danger');
+        return;
+    }
+    
+    const vehicle = state.vehicles.find(v => v.id === license.vehicle) || { make: 'Unknown', model: 'Unknown', plate_number: 'Unknown' };
+    const stateName = state.states.find(s => s.id === license.state)?.name || 'Unknown';
+    const regDate = new Date(license.registration_date).toLocaleDateString();
+    const expiryDate = new Date(license.expiry_date).toLocaleDateString();
+    const expiresIn = Math.ceil((new Date(license.expiry_date) - new Date()) / (1000 * 60 * 60 * 24));
+    
+    let status, statusClass;
+    if (expiresIn < 0) {
+        status = 'Expired';
+        statusClass = 'danger';
+    } else if (expiresIn <= 30) {
+        status = `Expires in ${expiresIn} days`;
+        statusClass = 'warning';
+    } else {
+        status = 'Active';
+        statusClass = 'success';
+    }
+    
+    const licenseNumber = `${stateName}-${vehicle.plate_number}-${new Date(license.registration_date).getFullYear()}`;
+    
+    const contentArea = document.getElementById('content');
+    contentArea.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>License Details</h2>
+            <button class="btn btn-secondary" onclick="navigateTo('renewals')">
+                <i class="bi bi-arrow-left"></i> Back to Renewals
+            </button>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">Vehicle License: ${licenseNumber}</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="mb-3">License Information</h5>
+                        <p><strong>License Number:</strong> ${licenseNumber}</p>
+                        <p><strong>State:</strong> ${stateName}</p>
+                        <p><strong>Issue Date:</strong> ${regDate}</p>
+                        <p><strong>Expiry Date:</strong> ${expiryDate}</p>
+                        <p><strong>Status:</strong> <span class="badge bg-${statusClass}">${status}</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Vehicle Information</h5>
+                        <p><strong>Make/Model:</strong> ${vehicle.make} ${vehicle.model}</p>
+                        <p><strong>Year:</strong> ${vehicle.year}</p>
+                        <p><strong>Plate Number:</strong> ${vehicle.plate_number}</p>
+                        <p><strong>VIN:</strong> ${vehicle.vin}</p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-primary" onclick="printLicense(${licenseId})">
+                        <i class="bi bi-printer"></i> Print License
+                    </button>
+                    ${expiresIn <= 30 ? 
+                        `<button class="btn btn-warning" onclick="showRenewalForm(${licenseId})">
+                            <i class="bi bi-arrow-repeat"></i> Renew License
+                        </button>` : ''}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">License History</h5>
+            </div>
+            <div class="card-body" id="license-history">
+                <div class="text-center p-3">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p>Loading license history...</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Fetch all registrations for this vehicle
+    const vehicleRegistrations = state.registrations.filter(r => r.vehicle === license.vehicle);
+    
+    if (vehicleRegistrations.length <= 1) {
+        document.getElementById('license-history').innerHTML = `
+            <div class="alert alert-info">
+                This is the first license for this vehicle. No renewal history available.
+            </div>
+        `;
+    } else {
+        // Sort by date (newest first, excluding the current one)
+        const history = vehicleRegistrations
+            .filter(r => r.id !== license.id)
+            .sort((a, b) => new Date(b.registration_date) - new Date(a.registration_date));
+        
+        document.getElementById('license-history').innerHTML = `
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Issue Date</th>
+                            <th>Expiry Date</th>
+                            <th>State</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${history.map(reg => {
+                            const regStateName = state.states.find(s => s.id === reg.state)?.name || 'Unknown';
+                            const regDate = new Date(reg.registration_date).toLocaleDateString();
+                            const regExpiryDate = new Date(reg.expiry_date).toLocaleDateString();
+                            const isExpired = new Date(reg.expiry_date) < new Date();
+                            
+                            return `
+                                <tr>
+                                    <td>${regDate}</td>
+                                    <td>${regExpiryDate}</td>
+                                    <td>${regStateName}</td>
+                                    <td>
+                                        <span class="badge ${isExpired ? 'bg-secondary' : 'bg-success'}">
+                                            ${isExpired ? 'Expired' : 'Active'}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+}
+
+// Show renewal form
+function showRenewalForm(licenseId) {
+    let license;
+    if (licenseId) {
+        license = state.registrations.find(r => r.id === licenseId);
+        if (!license) {
+            showNotification('License not found', 'danger');
+            return;
+        }
+    }
+    
+    const contentArea = document.getElementById('content');
+    
+    if (license) {
+        // Renewing an existing license
+        const vehicle = state.vehicles.find(v => v.id === license.vehicle) || { make: 'Unknown', model: 'Unknown', plate_number: 'Unknown' };
+        const currentState = state.states.find(s => s.id === license.state);
+        
+        contentArea.innerHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Renew Vehicle License</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <p><strong>Vehicle:</strong> ${vehicle.make} ${vehicle.model} (${vehicle.plate_number})</p>
+                        <p><strong>Current Expiry:</strong> ${new Date(license.expiry_date).toLocaleDateString()}</p>
+                    </div>
+                    
+                    <form id="renewalForm">
+                        <input type="hidden" name="vehicle" value="${license.vehicle}">
+                        
+                        <div class="mb-3">
+                            <label for="state" class="form-label">State</label>
+                            <select class="form-select" id="state" name="state" required>
+                                ${state.states.map(state => `
+                                    <option value="${state.id}" ${state.id === license.state ? 'selected' : ''}>
+                                        ${state.name}
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="expiry_date" class="form-label">New Expiry Date</label>
+                            <input type="date" class="form-control" id="expiry_date" name="expiry_date" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="renewal_fee" class="form-label">Renewal Fee ($)</label>
+                            <input type="number" class="form-control" id="renewal_fee" value="75.00" readonly>
+                            <div class="form-text">Standard renewal fee for ${currentState ? currentState.name : 'your state'}</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="confirmCheck" required>
+                                <label class="form-check-label" for="confirmCheck">
+                                    I confirm that this vehicle meets all safety and emissions requirements
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div id="renewal-form-error" class="alert alert-danger d-none"></div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" onclick="navigateTo('renewals')">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="showPaymentFormForRenewal()">Proceed to Payment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        
+        // Set default expiry date (1 year from current expiry or today if already expired)
+        const today = new Date();
+        const currentExpiry = new Date(license.expiry_date);
+        let newExpiry;
+        
+        if (currentExpiry > today) {
+            // If not expired, add 1 year to current expiry
+            newExpiry = new Date(currentExpiry);
+            newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+        } else {
+            // If expired, add 1 year to today
+            newExpiry = new Date();
+            newExpiry.setFullYear(newExpiry.getFullYear() + 1);
+        }
+        
+        document.getElementById('expiry_date').valueAsDate = newExpiry;
+        
+    } else {
+        // New license renewal (select vehicle first)
+        contentArea.innerHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">License Renewal</h4>
+                </div>
+                <div class="card-body">
+                    <form id="selectVehicleForm">
+                        <div class="mb-3">
+                            <label for="vehicle" class="form-label">Select Vehicle</label>
+                            <select class="form-select" id="vehicle" name="vehicle" required>
+                                <option value="">-- Select a vehicle --</option>
+                                ${state.vehicles.map(vehicle => `
+                                    <option value="${vehicle.id}">
+                                        ${vehicle.make} ${vehicle.model} (${vehicle.plate_number})
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" onclick="navigateTo('renewals')">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Continue</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('selectVehicleForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const vehicleId = parseInt(document.getElementById('vehicle').value);
+            const vehicle = state.vehicles.find(v => v.id === vehicleId);
+            
+            if (vehicle) {
+                // Find the most recent license for this vehicle
+                const vehicleLicenses = state.registrations.filter(r => r.vehicle === vehicleId);
+                if (vehicleLicenses.length > 0) {
+                    // Sort by date (newest first)
+                    vehicleLicenses.sort((a, b) => new Date(b.registration_date) - new Date(a.registration_date));
+                    const latestLicense = vehicleLicenses[0];
+                    showRenewalForm(latestLicense.id);
+                } else {
+                    // No license found, redirect to regular registration
+                    showAddRegistrationForm();
+                }
+            } else {
+                showNotification('Please select a valid vehicle', 'warning');
+            }
+        });
+    }
+}
+
+// Show payment form for renewal
+function showPaymentFormForRenewal() {
+    const form = document.getElementById('renewalForm');
+    const errorDiv = document.getElementById('renewal-form-error');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    if (!document.getElementById('confirmCheck').checked) {
+        errorDiv.textContent = 'You must confirm that the vehicle meets all requirements';
+        errorDiv.classList.remove('d-none');
+        return;
+    }
+    
+    errorDiv.classList.add('d-none');
+    
+    const vehicleId = parseInt(form.vehicle.value);
+    const stateId = parseInt(form.state.value);
+    const expiryDate = form.expiry_date.value;
+    const renewalFee = parseFloat(document.getElementById('renewal_fee').value);
+    
+    const vehicle = state.vehicles.find(v => v.id === vehicleId);
+    const stateName = state.states.find(s => s.id === stateId)?.name || 'Unknown';
+    
+    const contentArea = document.getElementById('content');
+    contentArea.innerHTML = `
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Payment for License Renewal</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <h5>Renewal Summary</h5>
+                    <p><strong>Vehicle:</strong> ${vehicle.make} ${vehicle.model} (${vehicle.plate_number})</p>
+                    <p><strong>State:</strong> ${stateName}</p>
+                    <p><strong>New Expiry Date:</strong> ${new Date(expiryDate).toLocaleDateString()}</p>
+                    <p><strong>Amount Due:</strong> $${renewalFee.toFixed(2)}</p>
+                </div>
+                
+                <form id="renewalPaymentForm">
+                    <input type="hidden" name="vehicle" value="${vehicleId}">
+                    <input type="hidden" name="state" value="${stateId}">
+                    <input type="hidden" name="expiry_date" value="${expiryDate}">
+                    
+                    <div class="mb-3">
+                        <label for="card_number" class="form-label">Card Number</label>
+                        <input type="text" class="form-control" id="card_number" placeholder="XXXX XXXX XXXX XXXX" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="expiry" class="form-label">Expiry Date</label>
+                            <input type="text" class="form-control" id="expiry" placeholder="MM/YY" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="cvv" class="form-label">CVV</label>
+                            <input type="text" class="form-control" id="cvv" placeholder="123" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="card_name" class="form-label">Name on Card</label>
+                        <input type="text" class="form-control" id="card_name" required>
+                    </div>
+                    
+                    <div id="payment-form-error" class="alert alert-danger d-none"></div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-secondary" onclick="showRenewalForm()">Back</button>
+                        <button type="submit" class="btn btn-primary">Complete Payment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('renewalPaymentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        processRenewal();
+    });
+}
+
+// Process renewal
+function processRenewal() {
+    const form = document.getElementById('renewalPaymentForm');
+    const errorDiv = document.getElementById('payment-form-error');
+    errorDiv.classList.add('d-none');
+    
+    const registrationData = {
+        vehicle: parseInt(form.vehicle.value),
+        state: parseInt(form.state.value),
+        expiry_date: form.expiry_date.value
+    };
+    
+    // Save the new registration (renewal) to the database
+    fetch(`${API_BASE_URL}/registrations/`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Token ${state.token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(registrationData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(data => {
+                throw new Error(JSON.stringify(data));
+            });
+        }
+        return response.json();
+    })
+    .then(() => {
+        // Show success and return to renewals
+        showNotification('License renewal completed successfully!', 'success');
+        navigateTo('renewals');
+    })
+    .catch(error => {
+        try {
+            const errors = JSON.parse(error.message);
+            let errorMessage = '';
+            for (const key in errors) {
+                errorMessage += `${key}: ${errors[key].join(', ')}<br>`;
+            }
+            errorDiv.innerHTML = errorMessage;
+        } catch (e) {
+            errorDiv.textContent = 'Failed to process renewal. Please try again.';
+        }
+        error
+        try {
+            const errors = JSON.parse(error.message);
+            let errorMessage = '';
+            for (const key in errors) {
+                errorMessage += `${key}: ${errors[key].join(', ')}<br>`;
+            }
+            errorDiv.innerHTML = errorMessage;
+        } catch (e) {
+            errorDiv.textContent = 'Failed to process renewal. Please try again.';
+        }
+        errorDiv.classList.remove('d-none');
+    });
+}
+
+// Print license
+function printLicense(licenseId) {
+    const license = state.registrations.find(r => r.id === licenseId);
+    if (!license) {
+        showNotification('License not found', 'danger');
+        return;
+    }
+    
+    const vehicle = state.vehicles.find(v => v.id === license.vehicle) || { make: 'Unknown', model: 'Unknown', plate_number: 'Unknown' };
+    const stateName = state.states.find(s => s.id === license.state)?.name || 'Unknown';
+    const regDate = new Date(license.registration_date).toLocaleDateString();
+    const expiryDate = new Date(license.expiry_date).toLocaleDateString();
+    
+    const licenseNumber = `${stateName}-${vehicle.plate_number}-${new Date(license.registration_date).getFullYear()}`;
+    
+    // Create a printable window with license information
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Vehicle License - ${licenseNumber}</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 0;
+                    padding: 20px;
+                }
+                .license {
+                    width: 100%;
+                    max-width: 800px;
+                    margin: 0 auto;
+                    border: 2px solid #333;
+                    padding: 20px;
+                }
+                .header {
+                    text-align: center;
+                    border-bottom: 2px solid #333;
+                    padding-bottom: 10px;
+                    margin-bottom: 20px;
+                }
+                .title {
+                    font-size: 24px;
+                    font-weight: bold;
+                    margin: 0;
+                }
+                .subtitle {
+                    font-size: 18px;
+                    margin: 5px 0;
+                }
+                .info-section {
+                    margin-bottom: 20px;
+                }
+                .info-row {
+                    display: flex;
+                    margin-bottom: 5px;
+                }
+                .info-label {
+                    font-weight: bold;
+                    width: 150px;
+                }
+                .info-value {
+                    flex: 1;
+                }
+                .footer {
+                    margin-top: 30px;
+                    text-align: center;
+                    font-style: italic;
+                }
+                @media print {
+                    body {
+                        padding: 0;
+                    }
+                    .license {
+                        border: none;
+                    }
+                    .print-button {
+                        display: none;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="license">
+                <div class="header">
+                    <h1 class="title">VEHICLE LICENSE</h1>
+                    <h2 class="subtitle">State of ${stateName}</h2>
+                </div>
+                
+                <div class="info-section">
+                    <div class="info-row">
+                        <div class="info-label">License Number:</div>
+                        <div class="info-value">${licenseNumber}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Issue Date:</div>
+                        <div class="info-value">${regDate}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Expiry Date:</div>
+                        <div class="info-value">${expiryDate}</div>
+                    </div>
+                </div>
+                
+                <div class="info-section">
+                    <div class="info-row">
+                        <div class="info-label">Vehicle Make:</div>
+                        <div class="info-value">${vehicle.make}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Vehicle Model:</div>
+                        <div class="info-value">${vehicle.model}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Year:</div>
+                        <div class="info-value">${vehicle.year}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">Plate Number:</div>
+                        <div class="info-value">${vehicle.plate_number}</div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">VIN:</div>
+                        <div class="info-value">${vehicle.vin}</div>
+                    </div>
+                </div>
+                
+                <div class="info-section">
+                    <div class="info-row">
+                        <div class="info-label">Owner:</div>
+                        <div class="info-value">${state.user.username}</div>
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    This is an official vehicle license document. 
+                    Tampering with this document is a criminal offense.
+                </div>
+            </div>
+            
+            <div class="print-button" style="text-align: center; margin-top: 20px;">
+                <button onclick="window.print();" style="padding: 10px 20px; background: #1e3a8a; color: white; border: none; cursor: pointer;">
+                    Print License
+                </button>
+            </div>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+
         // Render Profile Section
         function renderProfile() {
             const contentArea = document.getElementById('content');
